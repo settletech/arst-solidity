@@ -1,5 +1,5 @@
 const { TronWeb } = require('tronweb')
-import * as artifacts from '../artifacts/contracts/StableToken.sol/StableToken.json'; // Update path
+import * as artifacts from '../artifacts/contracts/StableToken.sol/StableToken.json';
 
 const fullNode = 'https://api.nileex.io';
 const solidityNode = 'https://api.nileex.io';

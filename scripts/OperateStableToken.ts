@@ -13,25 +13,34 @@ const myAddress = tronWeb.address.fromPrivateKey(privateKey);
 async function interactWithContract() {
   const contract = await tronWeb.contract(artifacts.abi, contractAddress);
   try {
-    // 1. Get Token Details
-    const name = await contract.name().call();
-    const symbol = await contract.symbol().call();
-    const totalSupply = await contract.totalSupply().call();
-    console.log('Name:', name);
-    console.log('Symbol:', symbol);
-    console.log('Total Supply:', totalSupply.toString());
+    // // 1. Get Token Details
+    // const name = await contract.name().call();
+    // const symbol = await contract.symbol().call();
+    // const totalSupply = await contract.totalSupply().call();
+    // console.log('Name:', name);
+    // console.log('Symbol:', symbol);
+    // console.log('Total Supply:', totalSupply.toString());
 
     // // 2. Mint Tokens (only if the account has the MINTER_ROLE)
-    // const amountToMint = 1000;
+    // const amountToMint = 1000000000;
+    // const amountToMintWithDecimals = tronWeb.toBigNumber(amountToMint).multipliedBy(10 ** 18); // Multiply by 10^18
+    // console.log("Minting amount:", amountToMintWithDecimals.toString());
     // await contract.mint(myAddress, amountToMint).send({
-    //   feeLimit: 1000000000,
-    //   shouldPollResponse: true, // Optional: Poll for transaction confirmation
+    //     feeLimit: 10000000000,
+    //   shouldPollResponse: true, // Poll for transaction confirmation
     // });
     // console.log(`Minted ${amountToMint} tokens`);
 
     // 3. Transfer Tokens
-    const recipientAddress = 'TKSBtpcknEYtocLhYNE6jG62xqHwvFs6gc';
+    const recipientAddress = 'TKSBtpcknEYtocLhYNE6jG62xqHwvFs6gc'; // Gimer
+    // const recipientAddress = 'TU8bY3WLhL3xgfLDhuyPbaGLiDNAioEufe'; // JP
     const amountToTransfer = 100;
+
+    const myBalance = await contract.balanceOf(myAddress).call(); 
+    console.log("My balance:", myBalance.toString());
+
+    const amountToTransferWithDecimals = tronWeb.toBigNumber(amountToTransfer).multipliedBy(10 ** 18);
+
     await contract.transfer(recipientAddress, amountToTransfer).send({
       feeLimit: 1000000000,
       shouldPollResponse: true,
