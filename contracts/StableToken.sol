@@ -9,13 +9,13 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract StableToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable, AccessControl {
 
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant MULTISIG_ROLE = keccak256("MULTISIG_ROLE"); 
 
     constructor()
         ERC20("StableToken", "STT") 
         Ownable(_msgSender())
     {
-        _grantRole(MINTER_ROLE, _msgSender());
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function transferOwnership(address newOwner) public override onlyOwner {
@@ -46,12 +46,12 @@ contract StableToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable, AccessCont
         return true;
     }
 
-    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+    function mint(address to, uint256 amount) public onlyRole(MULTISIG_ROLE) {
         super._mint(to, amount);
     }
 
     function addMinter(address newMinter) external onlyOwner {
-        _grantRole(MINTER_ROLE, newMinter);
+        _grantRole(MULTISIG_ROLE, newMinter);
     }
 
     function burn(address account, uint256 amount) internal virtual {
@@ -59,11 +59,11 @@ contract StableToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable, AccessCont
         super._burn(account, amount); 
     }
 
-    function pause() public onlyOwner {
+    function pause() public onlyRole(MULTISIG_ROLE) {
         _pause();
     }
 
-    function unpause() public onlyOwner {
+    function unpause() public onlyRole(MULTISIG_ROLE) {
         _unpause();
     }
 

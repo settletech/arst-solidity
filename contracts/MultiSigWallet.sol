@@ -79,6 +79,7 @@ contract MultiSigWallet is Ownable {
         Transaction storage txn = transactions[transactionId];
         require(!txn.executed, "Transaction already executed");
         bool success;
+        console.log("Executing transaction", transactionId);
         uint count = 0;
         for (uint i = 0; i < owners.length; i++) {
             console.log("Owner", i, ":", owners[i]);
@@ -91,6 +92,7 @@ contract MultiSigWallet is Ownable {
                 break;
             }
         }
+        console.log("Checking confirmations"); 
         require(count == required, "Not enough confirmations");
         txn.executed = true;
 
@@ -98,7 +100,7 @@ contract MultiSigWallet is Ownable {
             (success, ) = txn.to.call{value: txn.value}(""); // Call with empty data for ETH transfers
             require(success, "Failed to send Ether");
         }
-
+        console.log("Making contract call");
         if (txn.data.length > 0) {
             (success, ) = txn.to.call(txn.data); // Call for contract calls
             require(success, "Transaction failed");
