@@ -19,7 +19,9 @@ async function interactWithContract() {
   try {
     // Get the owners of the MultiSigWallet
     const owners = await multisigWallet.getOwners().call();
-    console.log("MultiSigWallet owners:", owners);
+    // Convert the owner addresses to base58 format
+    const base58Owners = owners.map((owner) => tronWeb.address.fromHex(owner));
+    console.log("MultiSigWallet owners:", base58Owners);
 
     // Encode the mint function call on StableToken
     const recipientAddress = "TU8bY3WLhL3xgfLDhuyPbaGLiDNAioEufe"; // JP
