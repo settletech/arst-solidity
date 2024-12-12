@@ -17,6 +17,10 @@ async function interactWithContract() {
     const multisigWallet = await tronWeb.contract(MultiSigArtifacts.abi, multisigAddress);
     const stableToken = await tronWeb.contract(StableTokenArtifacts.abi, stableTokenAddress);
   try {
+    // Get the owners of the MultiSigWallet
+    const owners = await multisigWallet.getOwners().call();
+    console.log("MultiSigWallet owners:", owners);
+
     // Encode the mint function call on StableToken
     const recipientAddress = "TU8bY3WLhL3xgfLDhuyPbaGLiDNAioEufe"; // JP
     const amountToMint = 1000;
