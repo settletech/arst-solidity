@@ -30,13 +30,13 @@ contract MultiSigWallet {
     event RequirementChange(uint required);
 
     modifier validRequirement(uint ownerCount, uint _required) {
-        require(ownerCount <= 255 && _required <= ownerCount && _required > 0 && ownerCount > 0);
+        require(ownerCount <= 255 && _required <= ownerCount && _required > 0 && ownerCount > 0, "Invalid owner count or requirement");
         _;
     }
 
     constructor(address[] memory _owners, uint _required) validRequirement(_owners.length, _required) {
         for (uint i = 0; i < _owners.length; i++) {
-            require(_owners[i] != address(0) && !isOwner[_owners[i]]);
+            require(_owners[i] != address(0) && !isOwner[_owners[i]], "Invalid owner address");
             isOwner[_owners[i]] = true;
         }
         owners = _owners;
@@ -60,8 +60,8 @@ contract MultiSigWallet {
     }
 
     function confirmTransaction(uint transactionId) public {
-        require(isOwner[msg.sender], "isOwner[msg.sender]");
-        require(!confirmations[transactionId][msg.sender]);
+        require(isOwner[msg.sender], "Not an owner");
+        require(!confirmations[transactionId][msg.sender], "Transaction already confirmed");
         confirmations[transactionId][msg.sender] = true;
         emit Confirmation(msg.sender, transactionId);
     }
