@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
-contract MultiSigWallet is Ownable {
+contract MultiSigWallet {
 
     mapping(address => bool) public isOwner;
     uint public required;
@@ -35,7 +34,7 @@ contract MultiSigWallet is Ownable {
         _;
     }
 
-    constructor(address[] memory _owners, uint _required) Ownable(msg.sender) validRequirement(_owners.length, _required) {
+    constructor(address[] memory _owners, uint _required) validRequirement(_owners.length, _required) {
         for (uint i = 0; i < _owners.length; i++) {
             require(_owners[i] != address(0) && !isOwner[_owners[i]]);
             isOwner[_owners[i]] = true;
@@ -113,32 +112,22 @@ contract MultiSigWallet is Ownable {
         }
     }
 
-    function addOwner(address owner) public onlyOwner {
-        require(owner != address(0) && !isOwner[owner]);
-        isOwner[owner] = true;
-        owners.push(owner);
-        emit OwnerAddition(owner);
+    function addOwner(address owner) public {
+        bytes memory data = abi.encodeWithSignature("addOwner(address)", owner);
+        uint transactionId = submitTransaction(address(this), 0, data);
+        confirmTransaction(transactionId);
     }
 
-    function removeOwner(address owner) public onlyOwner {
-        require(isOwner[owner]);
-        isOwner[owner] = false;
-        for (uint i = 0; i < owners.length - 1; i++) {
-            if (owners[i] == owner) {
-                owners[i] = owners[owners.length - 1];
-                break;
-            }
-        }
-        owners.pop();
-        if (required > owners.length) {
-            changeRequirement(owners.length);
-        }
-        emit OwnerRemoval(owner);
+    function removeOwner(address owner) public {
+        bytes memory data = abi.encodeWithSignature("removeOwner(address)", owner);
+        uint transactionId = submitTransaction(address(this), 0, data);
+        confirmTransaction(transactionId);
     }
 
-    function changeRequirement(uint _required) public onlyOwner validRequirement(owners.length, _required) {
-        required = _required;
-        emit RequirementChange(_required);
+    function changeRequirement(uint _required) public validRequirement(owners.length, _required) {
+        bytes memory data = abi.encodeWithSignature("changeRequirement(uint256)", _required);
+        uint transactionId = submitTransaction(address(this), 0, data);
+        confirmTransaction(transactionId);
     }
 
     function getConfirmationCount(uint transactionId) public view returns (uint count) {
