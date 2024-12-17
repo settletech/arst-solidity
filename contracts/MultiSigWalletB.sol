@@ -94,6 +94,7 @@ contract MultiSigWalletB {
         }));
         console.log("Submitted transaction ID:", txIndex);
         emit SubmitTransaction(msg.sender, txIndex, _to, _value, _data);
+        confirmTransaction(txIndex);
         return txIndex;
     }
 
@@ -147,14 +148,31 @@ contract MultiSigWalletB {
 
         transaction.executed = true;
 
-        if (bytes4(transaction.data) == bytes4(keccak256("addOwner(address)"))) {
-            (address ownerToAdd) = abi.decode(transaction.data, (address));
+        bytes memory calldataBytes = transaction.data;
+
+        if (bytes4(calldataBytes) == bytes4(keccak256("addOwner(address)"))) {
+            
+            bytes memory ownerToAddBytes = new bytes(calldataBytes.length - 4);
+            for (uint256 i = 4; i < calldataBytes.length; i++) {
+                ownerToAddBytes[i - 4] = calldataBytes[i];
+            }
+            (address ownerToAdd) = abi.decode(ownerToAddBytes, (address));
             _addOwner(ownerToAdd);
-        } else if (bytes4(transaction.data) == bytes4(keccak256("removeOwner(address)"))) {
-            (address ownerToRemove) = abi.decode(transaction.data, (address));
+        } else if (bytes4(calldataBytes) == bytes4(keccak256("removeOwner(address)"))) {
+            
+            bytes memory ownerToRemoveBytes = new bytes(calldataBytes.length - 4);
+            for (uint256 i = 4; i < calldataBytes.length; i++) {
+                ownerToRemoveBytes[i - 4] = calldataBytes[i];
+            }
+            (address ownerToRemove) = abi.decode(ownerToRemoveBytes, (address));
             _removeOwner(ownerToRemove);
-        } else if (bytes4(transaction.data) == bytes4(keccak256("changeRequirement(uint256)"))) {
-            (uint256 newRequirement) = abi.decode(transaction.data, (uint256));
+        } else if (bytes4(calldataBytes) == bytes4(keccak256("changeRequirement(uint256)"))) {
+            
+            bytes memory newRequirementBytes = new bytes(calldataBytes.length - 4);
+            for (uint256 i = 4; i < calldataBytes.length; i++) {
+                newRequirementBytes[i - 4] = calldataBytes[i];
+            }
+            (uint256 newRequirement) = abi.decode(newRequirementBytes, (uint256));
             console.log("New Requirement in executeTransaction:", newRequirement);
             _changeRequirement(newRequirement);
         }
@@ -184,23 +202,17 @@ contract MultiSigWalletB {
 
     function addOwner(address _owner) public {
         bytes memory data = abi.encodeWithSignature("addOwner(address)", _owner);
-        uint256 transactionId = submitTransaction(address(this), 0, data); 
-        confirmTransaction(transactionId);
-        // executeOwnershipTransaction(transactionId);
+        submitTransaction(address(this), 0, data); 
     }
 
     function removeOwner(address _owner) public {
         bytes memory data = abi.encodeWithSignature("removeOwner(address)", _owner);
-        uint256 transactionId = submitTransaction(address(this), 0, data); 
-        confirmTransaction(transactionId);
-        // executeOwnershipTransaction(transactionId);
+        submitTransaction(address(this), 0, data); 
     }
 
     function changeRequirement(uint256 _numConfirmationsRequired) public {
         bytes memory data = abi.encodeWithSignature("changeRequirement(uint256)", _numConfirmationsRequired);
-        uint256 transactionId = submitTransaction(address(this), 0, data); 
-        confirmTransaction(transactionId);
-        // executeOwnershipTransaction(transactionId);
+        submitTransaction(address(this), 0, data); 
     }
 
     // Internal functions for owner management
