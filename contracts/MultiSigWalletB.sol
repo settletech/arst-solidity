@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "hardhat/console.sol";
 contract MultiSigWalletB {
 
     mapping(address => bool) public isOwner;
@@ -92,7 +91,6 @@ contract MultiSigWalletB {
             executed: false,
             numConfirmations: 0
         }));
-        console.log("Submitted transaction ID:", txIndex);
         emit SubmitTransaction(msg.sender, txIndex, _to, _value, _data);
         confirmTransaction(txIndex);
         return txIndex;
@@ -173,7 +171,6 @@ contract MultiSigWalletB {
                 newRequirementBytes[i - 4] = calldataBytes[i];
             }
             (uint256 newRequirement) = abi.decode(newRequirementBytes, (uint256));
-            console.log("New Requirement in executeTransaction:", newRequirement);
             _changeRequirement(newRequirement);
         }
 
@@ -231,10 +228,8 @@ contract MultiSigWalletB {
     }
 
     function _changeRequirement(uint256 _numConfirmationsRequired) private {
-        console.log("Confirmations required:", _numConfirmationsRequired);
         require(_numConfirmationsRequired > 0, "invalid number of required confirmations"); 
         require(_numConfirmationsRequired <= owners.length, "invalid number of required confirmations");
-        console.log("Owners lenght:", owners.length);
         numConfirmationsRequired = _numConfirmationsRequired;
     }
 
