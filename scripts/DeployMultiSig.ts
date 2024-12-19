@@ -1,5 +1,5 @@
 const { TronWeb } = require('tronweb')
-import * as MultiSigArtifacts from "../artifacts/contracts/MultiSigWallet.sol/MultiSigWallet.json";
+import * as MultiSigArtifacts from "../artifacts/contracts/MultiSigWalletB.sol/MultiSigWalletB.json";
 import * as StableTokenArtifacts from "../artifacts/contracts/StableToken.sol/StableToken.json";
 
 const fullNode = 'https://api.nileex.io';
@@ -8,8 +8,6 @@ const eventServer = 'https://api.nileex.io';
 const privateKey = ''; // TK1pZJhv9nQzcQauyYLWSJ23FjhZxmYPsz
 
 const tronWeb = new TronWeb(fullNode, solidityNode, eventServer, privateKey);
-const contractABI = artifacts.abi;
-const contractBytecode = artifacts.bytecode;
 
 async function freezeTRXForBandwidth() {
   const freezeAmount = 100_000_000; // Freeze 100 TRX (in sun)
@@ -60,14 +58,14 @@ async function deployContract() {
 
   console.log("StableToken deployed to:", stableToken.address);
 
-  // Grant the MULTISIG_ROLE to the MultiSigWallet
-  const multisigRole = tronWeb.sha3("MULTISIG_ROLE"); // Calculate the role hash
-  await stableToken
-    .grantRole(multisigRole, multisigWallet.address)
-    .send({
-      feeLimit: 1000000000,
-      shouldPollResponse: true,
-    });
+  // --- Transfer ownership of StableToken to MultiSigWallet ---
+  await stableToken.contract.methods
+    .transferOwnership(multisigWallet.address)
+    .send({ feeLimit: 1000000000, shouldPollResponse: true });
+
+  console.log("Ownership of StableToken transferred to MultiSigWallet");
+
+
 }
 
 // Freeze TRX, then deploy

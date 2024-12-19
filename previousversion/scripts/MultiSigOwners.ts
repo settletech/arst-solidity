@@ -7,7 +7,7 @@ const eventServer = "https://api.nileex.io";
 const privateKey = ""; // TK1pZJhv9nQzcQauyYLWSJ23FjhZxmYPsz
 
 const tronWeb = new TronWeb(fullNode, solidityNode, eventServer, privateKey);
-const multisigAddress = "41733e2f713d7e678125c444e71adb60f4912b40e2"; // Replace with the actual address
+const multisigAddress = "41733e2f713d7e678125c444e71adb60f4912b40e2"; 
 
 async function interactWithContract() {
   const multisigWallet = await tronWeb.contract(MultiSigArtifacts.abi, multisigAddress);
