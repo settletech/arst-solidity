@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-contract MultiSigWalletB {
+contract MultiSigWallet {
 
+    // Tesnet Address: TSsS92vtdRdofdoMPKLpd2z3AJ47KLiVVg
     mapping(address => bool) public isOwner;
     uint256 public numConfirmationsRequired;
     address[] public owners;

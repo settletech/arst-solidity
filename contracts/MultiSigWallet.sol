@@ -1,181 +1,262 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "hardhat/console.sol";
+pragma solidity 0.8.20;
 
 contract MultiSigWallet {
 
     mapping(address => bool) public isOwner;
-    uint public required;
+    uint256 public numConfirmationsRequired;
     address[] public owners;
 
     struct Transaction {
         address to;
-        uint value;
+        uint256 value;
         bytes data;
         bool executed;
+        uint256 numConfirmations;
     }
 
     Transaction[] public transactions;
-    mapping(uint => mapping(address => bool)) public confirmations;
+    // mapping from tx index => owner => bool
+    mapping(uint256 => mapping(address => bool)) public isConfirmed;
 
-    event Submission(uint indexed txIndex);
-    event Confirmation(address indexed sender, uint indexed txIndex);
-    event Revocation(address indexed sender, uint indexed txIndex);
-    event Execution(uint indexed txIndex);
-    event ExecutionFailure(uint indexed txIndex);
-    event Deposit(address indexed sender, uint value);
-    event OwnerAddition(address indexed owner);
-    event OwnerRemoval(address indexed owner);
-    event RequirementChange(uint required);
+    event Deposit(address indexed sender, uint256 amount, uint256 balance);
+    event SubmitTransaction(
+        address indexed owner,
+        uint256 indexed txIndex,
+        address indexed to,
+        uint256 value,
+        bytes data
+    );
+   
+    event ConfirmTransaction(address indexed owner, uint256 indexed txIndex);
+    event RevokeConfirmation(address indexed owner, uint256 indexed txIndex);
+    event ExecuteTransaction(address indexed owner, uint256 indexed txIndex);
+    event ExecuteOwnershipTransaction(address indexed owner, uint256 indexed txIndex);
 
-    modifier validRequirement(uint ownerCount, uint _required) {
-        require(ownerCount <= 255 && _required <= ownerCount && _required > 0 && ownerCount > 0, "Invalid owner count or requirement");
+    modifier onlyOwner() {
+        require(isOwner[msg.sender], "not owner");
         _;
     }
 
-    constructor(address[] memory _owners, uint _required) validRequirement(_owners.length, _required) {
-        for (uint i = 0; i < _owners.length; i++) {
-            require(_owners[i] != address(0) && !isOwner[_owners[i]], "Invalid owner address");
-            isOwner[_owners[i]] = true;
+    modifier txExists(uint256 _txIndex) {
+        require(_txIndex < transactions.length, "tx does not exist");
+        _;
+    }
+
+    modifier notExecuted(uint256 _txIndex) {
+        require(!transactions[_txIndex].executed, "tx already executed");
+        _;
+    }
+
+    modifier notConfirmed(uint256 _txIndex) {
+        require(!isConfirmed[_txIndex][msg.sender], "tx already confirmed");
+        _;
+    }
+
+    constructor(address[] memory _owners, uint256 _numConfirmationsRequired) payable {
+        require(_owners.length > 0, "owners required");
+        require(
+            _numConfirmationsRequired > 0
+                && _numConfirmationsRequired <= _owners.length,
+            "invalid number of required confirmations"
+        );
+
+        for (uint256 i = 0; i < _owners.length; i++) {
+            address owner = _owners[i];
+
+            require(owner != address(0), "invalid owner");
+            require(!isOwner[owner], "owner not unique");
+
+            isOwner[owner] = true;
+            owners.push(owner);
         }
-        owners = _owners;
-        required = _required;
+
+        numConfirmationsRequired = _numConfirmationsRequired;
+    }
+
+    function getBalance() external view returns (uint256){
+        return address(this).balance;
     }
 
     receive() external payable {
-        emit Deposit(msg.sender, msg.value);
+        emit Deposit(msg.sender, msg.value, address(this).balance);
     }
 
-    function submitTransaction(address destination, uint value, bytes memory data) public returns (uint transactionId) {
-        transactionId = transactions.length;
+    function submitTransaction(address _to, uint256 _value, bytes memory _data) public onlyOwner returns (uint256 transactionId) {
+        uint256 txIndex = transactions.length;
         transactions.push(Transaction({
-            to: destination,
-            value: value,
-            data: data,
-            executed: false
+            to: _to,
+            value: _value,
+            data: _data,
+            executed: false,
+            numConfirmations: 1
         }));
-        emit Submission(transactionId);
-        console.log("Submitted transaction ID:", transactionId);
-    }
-
-    function confirmTransaction(uint transactionId) public {
-        require(isOwner[msg.sender], "Not an owner");
-        require(!confirmations[transactionId][msg.sender], "Transaction already confirmed");
-        confirmations[transactionId][msg.sender] = true;
-        emit Confirmation(msg.sender, transactionId);
-    }
-
-    function revokeConfirmation(uint transactionId) public {
-        require(isOwner[msg.sender], "Not an owner");
-        require(confirmations[transactionId][msg.sender], "Transaction not confirmed");
-        confirmations[transactionId][msg.sender] = false;
-        emit Revocation(msg.sender, transactionId);
-    }
-
-    function executeTransaction(uint transactionId) public {
-        require(isOwner[msg.sender], "Not an owner");
-        Transaction storage txn = transactions[transactionId];
-        require(!txn.executed, "Transaction already executed");
-        bool success;
-        console.log("Executing transaction", transactionId);
-        uint count = 0;
-        for (uint i = 0; i < owners.length; i++) {
-            console.log("Owner", i, ":", owners[i]);
-            console.log("Confirmed:", confirmations[transactionId][owners[i]]);
-            if (confirmations[transactionId][owners[i]]) {
-                count += 1;
-            }
-            console.log("Count:", count);
-            if (count == required) {
-                break;
-            }
-        }
-        console.log("Checking confirmations"); 
-        require(count == required, "Not enough confirmations");
-        txn.executed = true;
-
-        if (txn.value > 0) {
-            (success, ) = txn.to.call{value: txn.value}(""); // Call with empty data for ETH transfers
-            require(success, "Failed to send Ether");
-        }
-        console.log("Making contract call");
-        if (txn.data.length > 0) {
-            (success, ) = txn.to.call(txn.data); // Call for contract calls
-            require(success, "Transaction failed");
-        }
+        isConfirmed[txIndex][msg.sender] = true;
+        emit SubmitTransaction(msg.sender, txIndex, _to, _value, _data);
         
-        if (success) {
-            emit Execution(transactionId);
-        } else {
-            emit ExecutionFailure(transactionId);
-        }
+        return txIndex;
     }
 
-    function addOwner(address owner) public {
-        bytes memory data = abi.encodeWithSignature("addOwner(address)", owner);
-        uint transactionId = submitTransaction(address(this), 0, data);
-        confirmTransaction(transactionId);
+    function confirmTransaction(uint256 _txIndex)
+        public
+        onlyOwner
+        txExists(_txIndex)
+        notExecuted(_txIndex)
+        notConfirmed(_txIndex)
+    {
+        Transaction storage transaction = transactions[_txIndex];
+        transaction.numConfirmations += 1;
+        isConfirmed[_txIndex][msg.sender] = true;
+
+        emit ConfirmTransaction(msg.sender, _txIndex);
     }
 
-    function removeOwner(address owner) public {
-        bytes memory data = abi.encodeWithSignature("removeOwner(address)", owner);
-        uint transactionId = submitTransaction(address(this), 0, data);
-        confirmTransaction(transactionId);
+    function executeTransaction(uint256 _txIndex)
+        public
+        onlyOwner
+        txExists(_txIndex)
+        notExecuted(_txIndex)
+    {
+        Transaction storage transaction = transactions[_txIndex];
+
+        require(
+            transaction.numConfirmations >= numConfirmationsRequired,
+            "Not enough confirmations"
+        );
+
+        transaction.executed = true;
+       
+        (bool success, ) = address(transaction.to).call{value: transaction.value}(transaction.data);
+        require(success, "tx failed");
+        
+        emit ExecuteTransaction(msg.sender, _txIndex);
     }
 
-    function changeRequirement(uint _required) public validRequirement(owners.length, _required) {
-        bytes memory data = abi.encodeWithSignature("changeRequirement(uint256)", _required);
-        uint transactionId = submitTransaction(address(this), 0, data);
-        confirmTransaction(transactionId);
-    }
+    function executeOwnershipTransaction(uint256 _txIndex)
+        public
+        onlyOwner
+        txExists(_txIndex)
+        notExecuted(_txIndex)
+    {
+        Transaction storage transaction = transactions[_txIndex];
 
-    function getConfirmationCount(uint transactionId) public view returns (uint count) {
-        for (uint i = 0; i < owners.length; i++) {
-            if (confirmations[transactionId][owners[i]]) {
-                count += 1;
+        require(
+            transaction.numConfirmations >= numConfirmationsRequired,
+            "cannot execute tx"
+        );
+
+        transaction.executed = true;
+
+        bytes memory calldataBytes = transaction.data;
+
+        if (bytes4(calldataBytes) == bytes4(keccak256("addOwner(address)"))) {
+            
+            bytes memory ownerToAddBytes = new bytes(calldataBytes.length - 4);
+            for (uint256 i = 4; i < calldataBytes.length; i++) {
+                ownerToAddBytes[i - 4] = calldataBytes[i];
             }
+            (address ownerToAdd) = abi.decode(ownerToAddBytes, (address));
+            _addOwner(ownerToAdd);
+        } else if (bytes4(calldataBytes) == bytes4(keccak256("removeOwner(address)"))) {
+            
+            bytes memory ownerToRemoveBytes = new bytes(calldataBytes.length - 4);
+            for (uint256 i = 4; i < calldataBytes.length; i++) {
+                ownerToRemoveBytes[i - 4] = calldataBytes[i];
+            }
+            (address ownerToRemove) = abi.decode(ownerToRemoveBytes, (address));
+            _removeOwner(ownerToRemove);
+        } else if (bytes4(calldataBytes) == bytes4(keccak256("changeRequirement(uint256)"))) {
+            
+            bytes memory newRequirementBytes = new bytes(calldataBytes.length - 4);
+            for (uint256 i = 4; i < calldataBytes.length; i++) {
+                newRequirementBytes[i - 4] = calldataBytes[i];
+            }
+            (uint256 newRequirement) = abi.decode(newRequirementBytes, (uint256));
+            _changeRequirement(newRequirement);
         }
+
+        emit ExecuteOwnershipTransaction(msg.sender, _txIndex);
     }
 
-    function getTransactionCount(bool pending, bool executed) public view returns (uint count) {
-        for (uint i = 0; i < transactions.length; i++) {
-            if (pending && !transactions[i].executed || executed && transactions[i].executed) {
-                count += 1;
-            }
-        }
+    function revokeConfirmation(uint256 _txIndex)
+        public
+        onlyOwner
+        txExists(_txIndex)
+        notExecuted(_txIndex)
+    {
+        Transaction storage transaction = transactions[_txIndex];
+
+        require(isConfirmed[_txIndex][msg.sender], "tx not confirmed");
+
+        transaction.numConfirmations -= 1;
+        isConfirmed[_txIndex][msg.sender] = false;
+
+        emit RevokeConfirmation(msg.sender, _txIndex);
     }
 
     function getOwners() public view returns (address[] memory) {
         return owners;
     }
 
-    function getConfirmations(uint transactionId) public view returns (address[] memory _confirmations) {
-        address[] memory confirmationsTemp = new address[](owners.length);
-        uint count = 0;
-        uint i;
-        for (i = 0; i < owners.length; i++) {
-            if (confirmations[transactionId][owners[i]]) {
-                confirmationsTemp[count] = owners[i];
-                count += 1;
-            }
-        }
-        _confirmations = new address[](count);
-        for (i = 0; i < count; i++) {
-            _confirmations[i] = confirmationsTemp[i];
-        }
+    function addOwner(address _owner) public {
+        bytes memory data = abi.encodeWithSignature("addOwner(address)", _owner);
+        submitTransaction(address(this), 0, data); 
     }
 
-    function isConfirmed(uint transactionId) public view returns (bool) {
-        uint count = 0;
-        for (uint i = 0; i < owners.length; i++) {
-            if (confirmations[transactionId][owners[i]]) {
-                count += 1;
-            }
-            if (count == required) {
-                return true;
-            }
-        }
-        return false;
+    function removeOwner(address _owner) public {
+        bytes memory data = abi.encodeWithSignature("removeOwner(address)", _owner);
+        submitTransaction(address(this), 0, data); 
+    }
+
+    function changeRequirement(uint256 _numConfirmationsRequired) public {
+        bytes memory data = abi.encodeWithSignature("changeRequirement(uint256)", _numConfirmationsRequired);
+        submitTransaction(address(this), 0, data); 
+    }
+
+    // Internal functions for owner management
+    function _addOwner(address _owner) private { 
+        require(_owner != address(0), "invalid owner");
+        require(!isOwner[_owner], "owner not unique");
+
+        isOwner[_owner] = true;
+        owners.push(_owner);
+    }
+
+    function _removeOwner(address _owner) private {
+        require(isOwner[_owner], "not owner");
+
+        isOwner[_owner] = false;
+    }
+
+    function _changeRequirement(uint256 _numConfirmationsRequired) public {
+        require(_numConfirmationsRequired > 0, "invalid number of required confirmations"); 
+        require(_numConfirmationsRequired <= owners.length, "invalid number of required confirmations");
+        numConfirmationsRequired = _numConfirmationsRequired;
+    }
+
+    function getTransactionCount() public view returns (uint256) {
+        return transactions.length;
+    }
+
+    function getTransaction(uint256 _txIndex)
+        public
+        view
+        returns (
+            address to,
+            uint256 value,
+            bytes memory data,
+            bool executed,
+            uint256 numConfirmations
+        )
+    {
+        Transaction memory transaction = transactions[_txIndex];
+
+        return (
+            transaction.to,
+            transaction.value,
+            transaction.data,
+            transaction.executed,
+            transaction.numConfirmations
+        );
     }
 }
