@@ -38,6 +38,11 @@ contract MultiSigWallet {
         _;
     }
 
+    modifier onlyContract() {
+        require(address(this) == msg.sender, "not owner");
+        _;
+    }
+
     modifier txExists(uint256 _txIndex) {
         require(_txIndex < transactions.length, "tx does not exist");
         _;
@@ -228,7 +233,7 @@ contract MultiSigWallet {
         isOwner[_owner] = false;
     }
 
-    function _changeRequirement(uint256 _numConfirmationsRequired) public {
+    function _changeRequirement(uint256 _numConfirmationsRequired) public onlyContract {
         require(_numConfirmationsRequired > 0, "invalid number of required confirmations"); 
         require(_numConfirmationsRequired <= owners.length, "invalid number of required confirmations");
         numConfirmationsRequired = _numConfirmationsRequired;
