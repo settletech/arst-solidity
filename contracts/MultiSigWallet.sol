@@ -4,6 +4,8 @@ pragma solidity 0.8.20;
 contract MultiSigWallet {
 
     mapping(address => bool) public isOwner;
+    //mapping(address => bool) public trustedContract;
+
     uint256 public numConfirmationsRequired;
     address[] public owners;
 
@@ -65,6 +67,8 @@ contract MultiSigWallet {
                 && _numConfirmationsRequired <= _owners.length,
             "invalid number of required confirmations"
         );
+
+        //trustedContract[address(this)] = true;
 
         for (uint256 i = 0; i < _owners.length; i++) {
             address owner = _owners[i];
@@ -137,52 +141,6 @@ contract MultiSigWallet {
         emit ExecuteTransaction(msg.sender, _txIndex);
     }
 
-    function executeOwnershipTransaction(uint256 _txIndex)
-        public
-        onlyOwner
-        txExists(_txIndex)
-        notExecuted(_txIndex)
-    {
-        Transaction storage transaction = transactions[_txIndex];
-
-        require(
-            transaction.numConfirmations >= numConfirmationsRequired,
-            "cannot execute tx"
-        );
-
-        transaction.executed = true;
-
-        bytes memory calldataBytes = transaction.data;
-
-        if (bytes4(calldataBytes) == bytes4(keccak256("addOwner(address)"))) {
-            
-            bytes memory ownerToAddBytes = new bytes(calldataBytes.length - 4);
-            for (uint256 i = 4; i < calldataBytes.length; i++) {
-                ownerToAddBytes[i - 4] = calldataBytes[i];
-            }
-            (address ownerToAdd) = abi.decode(ownerToAddBytes, (address));
-            _addOwner(ownerToAdd);
-        } else if (bytes4(calldataBytes) == bytes4(keccak256("removeOwner(address)"))) {
-            
-            bytes memory ownerToRemoveBytes = new bytes(calldataBytes.length - 4);
-            for (uint256 i = 4; i < calldataBytes.length; i++) {
-                ownerToRemoveBytes[i - 4] = calldataBytes[i];
-            }
-            (address ownerToRemove) = abi.decode(ownerToRemoveBytes, (address));
-            _removeOwner(ownerToRemove);
-        } else if (bytes4(calldataBytes) == bytes4(keccak256("changeRequirement(uint256)"))) {
-            
-            bytes memory newRequirementBytes = new bytes(calldataBytes.length - 4);
-            for (uint256 i = 4; i < calldataBytes.length; i++) {
-                newRequirementBytes[i - 4] = calldataBytes[i];
-            }
-            (uint256 newRequirement) = abi.decode(newRequirementBytes, (uint256));
-            _changeRequirement(newRequirement);
-        }
-
-        emit ExecuteOwnershipTransaction(msg.sender, _txIndex);
-    }
-
     function revokeConfirmation(uint256 _txIndex)
         public
         onlyOwner
@@ -203,23 +161,8 @@ contract MultiSigWallet {
         return owners;
     }
 
-    function addOwner(address _owner) public {
-        bytes memory data = abi.encodeWithSignature("addOwner(address)", _owner);
-        submitTransaction(address(this), 0, data); 
-    }
-
-    function removeOwner(address _owner) public {
-        bytes memory data = abi.encodeWithSignature("removeOwner(address)", _owner);
-        submitTransaction(address(this), 0, data); 
-    }
-
-    function changeRequirement(uint256 _numConfirmationsRequired) public {
-        bytes memory data = abi.encodeWithSignature("changeRequirement(uint256)", _numConfirmationsRequired);
-        submitTransaction(address(this), 0, data); 
-    }
-
     // Internal functions for owner management
-    function _addOwner(address _owner) private { 
+    function addOwner(address _owner) public onlyContract { 
         require(_owner != address(0), "invalid owner");
         require(!isOwner[_owner], "owner not unique");
 
@@ -227,17 +170,33 @@ contract MultiSigWallet {
         owners.push(_owner);
     }
 
-    function _removeOwner(address _owner) private {
+    function removeOwner(address _owner) public onlyContract {
         require(isOwner[_owner], "not owner");
 
         isOwner[_owner] = false;
     }
 
-    function _changeRequirement(uint256 _numConfirmationsRequired) public onlyContract {
+    function changeRequirement(uint256 _numConfirmationsRequired) public onlyContract {
         require(_numConfirmationsRequired > 0, "invalid number of required confirmations"); 
         require(_numConfirmationsRequired <= owners.length, "invalid number of required confirmations");
         numConfirmationsRequired = _numConfirmationsRequired;
     }
+    /*
+    function isTrustedContract(address _contractAddress) public view returns(bool){
+        require(_contractAddress != address(0), "invalid address!");
+
+        return trustedContract[_contractAddress];
+    }
+
+    function addTrustedContract(address _newContract) public onlyContract {
+        require(!isTrustedContract(_newContract), "trusted contract!"); 
+        trustedContract[_newContract] = true;
+    }
+
+    function revokeTrustedContract(address _contractAddress) public onlyContract {
+        require(isTrustedContract(_contractAddress), "not trusted contract!"); 
+        trustedContract[_contractAddress] = false;
+    } */
 
     function getTransactionCount() public view returns (uint256) {
         return transactions.length;

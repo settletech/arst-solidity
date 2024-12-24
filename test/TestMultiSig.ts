@@ -31,20 +31,20 @@ describe("MultiSigWallet", function () {
   }); 
   
   it("should allow an owner to submit a tx", async () => {
-    await expect(wallet.connect(owner1).submitTransaction(owner3.address, ONE_ETHER, "0x"))
+    await expect(wallet.connect(owner1).submitTransaction(wallet.target, ONE_ETHER, "0x"))
       .to.emit(wallet, "SubmitTransaction")
-      .withArgs(owner1.address, ZERO, owner3.address, ethers.parseEther("1"), "0x")
+      .withArgs(owner1.address, ZERO, wallet.target, ONE_ETHER, "0x")
     
     expect(await wallet.isConfirmed(ZERO, owner1.address)).to.be.equal(true);
   });
 
   it("should prevent a non-owner to submit a tx", async () => {
-    await expect(wallet.connect(notOwner).submitTransaction(owner3.address, ONE_ETHER, "0x"))
+    await expect(wallet.connect(notOwner).submitTransaction(wallet.target, ONE_ETHER, "0x"))
       .to.be.revertedWith("not owner");
   });
 
   it("should allow an owner to confirm a tx", async () => {
-    const tx = await wallet.connect(owner1).submitTransaction(owner3.address, ONE_ETHER, "0x");
+    const tx = await wallet.connect(owner1).submitTransaction(wallet.target, ONE_ETHER, "0x");
     await tx.wait();
   
     // Proceed with the confirmation
@@ -58,7 +58,7 @@ describe("MultiSigWallet", function () {
   
   it("should prevent a non-owner from confirming a tx", async function () {
  
-    await wallet.connect(owner1).submitTransaction(owner3.address, ONE_ETHER, "0x");
+    await wallet.connect(owner1).submitTransaction(wallet.target, ONE_ETHER, "0x");
     await expect(wallet.connect(notOwner).confirmTransaction(ZERO)).to.be.revertedWith("not owner");
 
   });
@@ -110,7 +110,7 @@ describe("MultiSigWallet", function () {
 
   it("should allow an owner to revoke a confirmation", async function () {
 
-    await wallet.connect(owner1).submitTransaction(owner3.address, ethers.parseEther("1"), "0x");
+    await wallet.connect(owner1).submitTransaction(owner3.address, ONE_ETHER, "0x");
   
     // Confirm the transaction with owner2
     await wallet.connect(owner2).confirmTransaction(ZERO);
@@ -119,75 +119,41 @@ describe("MultiSigWallet", function () {
       .to.emit(wallet, "RevokeConfirmation")
       .withArgs(owner2.address, ZERO);
 
+    await expect(wallet.connect(owner1).executeTransaction(ZERO))
+      .to.be.revertedWith("Not enough confirmations")
+
     // Confirm the transaction again
     await expect(wallet.connect(owner2).confirmTransaction(ZERO)).not.to.be.reverted;
 
-    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted; 
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
   });
 
   
   it("should prevent a non-owner from revoking a confirmation", async function () {
   
-    await wallet.connect(owner1).submitTransaction(owner3.address, ethers.parseEther("1"), "0x");
+    await wallet.connect(owner1).submitTransaction(owner3.address, ONE_ETHER, "0x");
   
     // Confirm the transaction with owner2
     await wallet.connect(owner2).confirmTransaction(ZERO);
 
     // Revoke the confirmation and check for the Revocation event
-    await expect(wallet.connect(notOwner).revokeConfirmation(ZERO)).to.be.revertedWith("not owner");
+    await expect(wallet.connect(notOwner).revokeConfirmation(ZERO))
+      .to.be.revertedWith("not owner");
 
     // Confirm the transaction again
-    await expect(wallet.connect(owner2).confirmTransaction(ZERO)).to.be.revertedWith("tx already confirmed");
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO))
+      .to.be.revertedWith("tx already confirmed");
 
-    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted; 
+    await expect(wallet.connect(owner1).executeTransaction(ZERO))
+      .not.to.be.reverted; 
   });
 
   
-  it("should allow adding a new owner", async function () {
-    await expect(wallet.connect(owner1).addOwner(owner3.address)).not.to.be.reverted;
-
-    expect(await wallet.isOwner(owner3.address)).to.be.true;
-
-    await expect(wallet.connect(notOwner).addOwner(owner3.address))
+  it("should only allow multisig to add additional owners", async function () {
+    await expect(wallet.connect(owner1).addOwner(owner3.address))
       .to.be.revertedWith("not owner");
   });
 
-  it("should only allow owners to add additional owners", async function () {
-    await expect(wallet.connect(notOwner).addOwner(owner3.address))
-      .to.be.revertedWith("not owner");
-  });
-
-
-  it("should allow removing an owner", async function () {
-    await expect(wallet.connect(owner1).removeOwner(owner2.address))
-      .not.to.be.reverted;
-
-    expect(await wallet.isOwner(owner2.address)).to.be.true;
-
-    await expect(wallet.connect(owner3).confirmTransaction(ZERO));
-
-    await expect(wallet.connect(owner1).executeOwnershipTransaction(ZERO)).not.to.be.reverted; 
-
-    expect(await wallet.isOwner(owner2.address)).to.be.false;
-  });
-
-  
-  /* it("should allow changing the confirmations required", async function () {
-    const ABI = ["function _changeRequirement(uint256 _numConfirmationsRequired)"];
-
-    const valueHex = new ethers.Interface(ABI);
-    const requirementData = valueHex.encodeFunctionData("_changeRequirement", [ONE]);
-
-    expect (await wallet.numConfirmationsRequired()).to.be.equal(2);
-
-    await expect(wallet.connect(owner1).changeRequirement(3)).not.to.be.reverted;
-    await expect(wallet.connect(owner2).confirmTransaction(ZERO));
-
-    //await expect(wallet.connect(owner1).executeOwnershipTransaction(ZERO)).not.to.be.reverted; 
-    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted; 
-
-    expect (await wallet.numConfirmationsRequired()).to.be.equal(3);
-  }); */
 
   it("should verify transaction properties", async function () {
     await wallet.connect(owner1).submitTransaction(owner3.address, ONE_ETHER, "0x");
@@ -249,6 +215,57 @@ describe("ARST Token Minting", function () {
   });
 
   
+  it("should execute goverment tx", async () => {
+    const ABI = ["function changeRequirement(uint256 _numConfirmationsRequired)"];
+
+    const valueHex = new ethers.Interface(ABI);
+    const requirementData = valueHex.encodeFunctionData("changeRequirement", [ONE]);
+
+    await wallet.connect(owner1).submitTransaction(wallet.target, ZERO, requirementData);
+
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
+
+    expect(await wallet.numConfirmationsRequired()).to.be.equal(ONE);
+  });
+
+  it("should allow multisig to add a new owner", async function () {
+    const ABI = ["function addOwner(address _owner)"];
+
+    const valueHex = new ethers.Interface(ABI);
+    const addOwnerData = valueHex.encodeFunctionData("addOwner", [notOwner.address]);
+
+    await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO, addOwnerData))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
+
+    expect(await wallet.isOwner(notOwner.address)).to.be.true;
+  });
+
+  it("should allow removing an owner", async function () {
+    const ABI = ["function removeOwner(address _owner)"];
+
+    const valueHex = new ethers.Interface(ABI);
+    const removeOwnerData = valueHex.encodeFunctionData("removeOwner", [owner3.address]);
+
+    await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO, removeOwnerData))
+      .not.to.be.reverted;
+
+    expect(await wallet.isOwner(owner3.address)).to.be.true;
+
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO));
+
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
+
+    expect(await wallet.isOwner(owner3.address)).to.be.false;
+  });
+
   it("should mint tokens", async () => {
     const ABI = ["function mint(address to, uint256 amount)"];
 
@@ -263,21 +280,5 @@ describe("ARST Token Minting", function () {
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
 
     expect(await token.balanceOf(owner3.address)).to.be.equal(TEN_ETHER);
-  });
-
-  it("should execute goverment tx", async () => {
-    const ABI = ["function _changeRequirement(uint256 _numConfirmationsRequired)"];
-
-    const valueHex = new ethers.Interface(ABI);
-    const requirementData = valueHex.encodeFunctionData("_changeRequirement", [ONE]);
-
-    await wallet.connect(owner1).submitTransaction(wallet.target, ZERO, requirementData);
-
-    await expect(wallet.connect(owner2).confirmTransaction(ZERO))
-      .not.to.be.reverted;
-
-    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
-
-    expect(await wallet.numConfirmationsRequired()).to.be.equal(ONE);
   });
 });
