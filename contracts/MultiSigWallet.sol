@@ -8,6 +8,7 @@ contract MultiSigWallet {
 
     uint256 public numConfirmationsRequired;
     address[] public owners;
+    uint256 public activeOwners;
 
     struct Transaction {
         address to;
@@ -68,8 +69,6 @@ contract MultiSigWallet {
             "invalid number of required confirmations"
         );
 
-        //trustedContract[address(this)] = true;
-
         for (uint256 i = 0; i < _owners.length; i++) {
             address owner = _owners[i];
 
@@ -80,6 +79,7 @@ contract MultiSigWallet {
             owners.push(owner);
         }
 
+        activeOwners = _owners.length;
         numConfirmationsRequired = _numConfirmationsRequired;
     }
 
@@ -167,12 +167,15 @@ contract MultiSigWallet {
         require(!isOwner[_owner], "owner not unique");
 
         isOwner[_owner] = true;
+        activeOwners++;
         owners.push(_owner);
     }
 
     function removeOwner(address _owner) public onlyContract {
+        require(activeOwners > numConfirmationsRequired, "owner cannot be removed");
         require(isOwner[_owner], "not owner");
 
+        activeOwners--;
         isOwner[_owner] = false;
     }
 
@@ -181,22 +184,6 @@ contract MultiSigWallet {
         require(_numConfirmationsRequired <= owners.length, "invalid number of required confirmations");
         numConfirmationsRequired = _numConfirmationsRequired;
     }
-    /*
-    function isTrustedContract(address _contractAddress) public view returns(bool){
-        require(_contractAddress != address(0), "invalid address!");
-
-        return trustedContract[_contractAddress];
-    }
-
-    function addTrustedContract(address _newContract) public onlyContract {
-        require(!isTrustedContract(_newContract), "trusted contract!"); 
-        trustedContract[_newContract] = true;
-    }
-
-    function revokeTrustedContract(address _contractAddress) public onlyContract {
-        require(isTrustedContract(_contractAddress), "not trusted contract!"); 
-        trustedContract[_contractAddress] = false;
-    } */
 
     function getTransactionCount() public view returns (uint256) {
         return transactions.length;

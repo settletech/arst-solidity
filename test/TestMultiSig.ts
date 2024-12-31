@@ -5,6 +5,7 @@ import { MultiSigWallet, StableToken } from "../typechain-types";
 let wallet: MultiSigWallet;
 let token: StableToken;
 let owner1: any, owner2: any, owner3: any, owner4, notOwner: any;
+const ZERO_ETHER = ethers.parseEther("0");
 const ONE_ETHER = ethers.parseEther("1");
 const TWO_ETHER = ethers.parseEther("2");
 const TEN_ETHER = ethers.parseEther("10");
@@ -27,8 +28,9 @@ describe("MultiSigWallet", function () {
 
   it("should be deployed with correct owners and requirement", async () => {
     expect(await wallet.getOwners()).to.deep.equal([owner1.address, owner2.address, owner3.address]);
-    expect(await wallet.numConfirmationsRequired()).to.equal(2);
-  }); 
+    expect(await wallet.numConfirmationsRequired()).to.be.equal(2);
+    expect(await wallet.activeOwners()).to.be.equal(3);
+  });
   
   it("should allow an owner to submit a tx", async () => {
     await expect(wallet.connect(owner1).submitTransaction(wallet.target, ONE_ETHER, "0x"))
@@ -264,6 +266,34 @@ describe("ARST Token Minting", function () {
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
 
     expect(await wallet.isOwner(owner3.address)).to.be.false;
+  });
+
+  it("should not allow removing an owner if less than required", async function () {
+    const ABI = ["function removeOwner(address _owner)"];
+
+    const valueHex = new ethers.Interface(ABI);
+    const removeOwnerData = valueHex.encodeFunctionData("removeOwner", [owner3.address]);
+
+    await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO, removeOwnerData))
+      .not.to.be.reverted;
+
+    expect(await wallet.activeOwners()).to.be.equal(3);
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO));
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
+    
+    expect(await wallet.activeOwners()).to.be.equal(2);
+    const removeOwnerData2 = valueHex.encodeFunctionData("removeOwner", [owner2.address]);
+    await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO_ETHER, removeOwnerData2))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner2).confirmTransaction(ONE));
+
+    await expect(wallet.connect(owner1).executeTransaction(ONE))
+      .to.be.revertedWith("tx failed");
+      
+
+    expect(await wallet.activeOwners()).to.be.equal(2);
+    expect(await wallet.isOwner(owner2.address)).to.be.true;
   });
 
   it("should mint tokens", async () => {
