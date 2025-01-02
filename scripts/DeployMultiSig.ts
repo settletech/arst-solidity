@@ -1,11 +1,13 @@
 const { TronWeb } = require('tronweb')
 import * as MultiSigArtifacts from "../artifacts/contracts/MultiSigWalletB.sol/MultiSigWalletB.json";
 import * as StableTokenArtifacts from "../artifacts/contracts/StableToken.sol/StableToken.json";
+import * as TokenVaultArtifacts from "../artifacts/contracts/Vault.sol/TokenVault.json"; 
+
 
 const fullNode = 'https://api.nileex.io';
 const solidityNode = 'https://api.nileex.io';
 const eventServer = 'https://api.nileex.io';
-const privateKey = ''; // TK1pZJhv9nQzcQauyYLWSJ23FjhZxmYPsz
+const privateKey = 'D9CFB5E4CDD192F5B67ED040C3B7D156BB4B08E02614279FC13E2BEBC317D5D2'; // TK1pZJhv9nQzcQauyYLWSJ23FjhZxmYPsz
 
 const tronWeb = new TronWeb(fullNode, solidityNode, eventServer, privateKey);
 
@@ -38,7 +40,7 @@ async function deployContract() {
     parameters: [
       [
         "TK1pZJhv9nQzcQauyYLWSJ23FjhZxmYPsz", 
-        "TKSBtpcknEYtocLhYNE6jG62xqHwvFs6gc",
+        "TLUvNKzyws3ub2iy8AY8C4SqE7ndgKX6dB",
       ],
       2, // Required confirmations
     ],
@@ -59,12 +61,28 @@ async function deployContract() {
   console.log("StableToken deployed to:", stableToken.address);
 
   // --- Transfer ownership of StableToken to MultiSigWallet ---
-  await stableToken.contract.methods
-    .transferOwnership(multisigWallet.address)
-    .send({ feeLimit: 1000000000, shouldPollResponse: true });
+  try {
+    await stableToken.transferOwnership(multisigWallet.address).send({
+      feeLimit: 1000000000,
+    });
 
-  console.log("Ownership of StableToken transferred to MultiSigWallet");
+    console.log("Ownership of StableToken transferred to MultiSigWallet");
+  } catch (error) {
+    console.error("Error transferring ownership:", error);
+  }
 
+  // Deploy Vault
+  const vault = await tronWeb.contract().new({
+    abi: TokenVaultArtifacts.abi,
+    bytecode: TokenVaultArtifacts.bytecode,
+    feeLimit: 1000000000,
+    callValue: 0,
+    userFeePercentage: 30,
+    originEnergyLimit: 10000000,
+    parameters: [stableToken.address], 
+  });
+
+  console.log("TokenVault deployed to:", vault.address);
 
 }
 

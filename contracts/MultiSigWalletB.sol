@@ -6,6 +6,7 @@ contract MultiSigWalletB {
     mapping(address => bool) public isOwner;
     uint256 public numConfirmationsRequired;
     address[] public owners;
+    uint256 public activeOwners;
 
     struct Transaction {
         address to;
@@ -31,7 +32,6 @@ contract MultiSigWalletB {
     event ConfirmTransaction(address indexed owner, uint256 indexed txIndex);
     event RevokeConfirmation(address indexed owner, uint256 indexed txIndex);
     event ExecuteTransaction(address indexed owner, uint256 indexed txIndex);
-    event ExecuteOwnershipTransaction(address indexed owner, uint256 indexed txIndex);
 
     modifier onlyOwner() {
         require(isOwner[msg.sender], "not owner");
@@ -76,6 +76,7 @@ contract MultiSigWalletB {
             owners.push(owner);
         }
 
+        activeOwners = _owners.length;
         numConfirmationsRequired = _numConfirmationsRequired;
     }
 
@@ -162,12 +163,15 @@ contract MultiSigWalletB {
         require(!isOwner[_owner], "owner not unique");
 
         isOwner[_owner] = true;
+        activeOwners++;
         owners.push(_owner);
     }
 
     function removeOwner(address _owner) public onlyContract {
+        require(activeOwners > numConfirmationsRequired, "owner cannot be removed");
         require(isOwner[_owner], "not owner");
 
+        activeOwners--;
         isOwner[_owner] = false;
     }
 

@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 contract TokenVault is Ownable, AccessControl { 
     IERC20 public token;
     bytes32 public constant VAULTOWNER_ROLE = keccak256("VAULTOWNER_ROLE"); 
+    event Transfer(address indexed recipient, uint256 amount);
 
     constructor(IERC20 _token) Ownable(msg.sender) {
         token = _token;
@@ -16,6 +17,7 @@ contract TokenVault is Ownable, AccessControl {
 
     function transfer(address _recipient, uint256 _amount) public onlyRole(VAULTOWNER_ROLE) { 
         require(token.transfer(_recipient, _amount), "Transfer failed");
+        emit Transfer(_recipient, _amount);
     }
 
     function getBalance() public view returns (uint256) {
