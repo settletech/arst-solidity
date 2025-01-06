@@ -39,7 +39,7 @@ async function deployContract() {
     originEnergyLimit: 10000000,
     parameters: [
       [
-        "TK1pZJhv9nQzcQauyYLWSJ23FjhZxmYPsz", 
+        "TK1pZJhv9nQzcQauyYLWSJ23FjhZxmYPsz", // Initial owners
         "TLUvNKzyws3ub2iy8AY8C4SqE7ndgKX6dB",
       ],
       2, // Required confirmations
