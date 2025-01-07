@@ -27,9 +27,6 @@ contract StableToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permi
         whenNotPaused
         returns (bool)
     {
-        require(_msgSender() != address(0), "ERC20: transfer from the zero address");
-        require(_msgSender() != address(0), "ERC20: transfer to the zero address");
-        
          super._transfer(_msgSender(), recipient, amount);
         return true;
     }
