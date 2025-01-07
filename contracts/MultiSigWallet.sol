@@ -176,7 +176,7 @@ contract MultiSigWallet {
     }
 
     function changeRequirement(uint256 _numConfirmationsRequired) public onlyContract {
-        require(_numConfirmationsRequired > 0, "invalid number of required confirmations"); 
+        require(_numConfirmationsRequired > 0, "confirmations required"); 
         require(_numConfirmationsRequired <= owners.length, "invalid number of required confirmations");
         numConfirmationsRequired = _numConfirmationsRequired;
     }
