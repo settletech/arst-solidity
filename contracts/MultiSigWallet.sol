@@ -39,7 +39,7 @@ contract MultiSigWallet {
     }
 
     modifier onlyContract() {
-        require(address(this) == msg.sender, "not owner");
+        require(address(this) == msg.sender, "only contract");
         _;
     }
 
