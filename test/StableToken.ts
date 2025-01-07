@@ -16,91 +16,76 @@ describe("StableToken", function () {
     await token.waitForDeployment(); 
   });
 
-  // it("Should have the correct name and symbol", async function () {
-  //   expect(await token.name()).to.equal("StableToken");
-  //   expect(await token.symbol()).to.equal("STT");
-  // });
+  it("Should have the correct name and symbol", async function () {
+    expect(await token.name()).to.equal("StableToken");
+    expect(await token.symbol()).to.equal("STT");
+  });
 
-  // it("Should have an initial supply of 0", async function () {
-  //   expect(await token.totalSupply()).to.equal(0);
-  // });
+  it("Should have an initial supply of 0", async function () {
+    expect(await token.totalSupply()).to.equal(0);
+  });
 
-  // it("Should revert if trying to transfer to the zero address", async function () {
-  //   await token.mint(user1.address, 1000);
-  //   await expect(token.connect(user1).transfer(ethers.ZeroAddress, 500)).to.be.reverted;
-  // });
+  it("Should revert if trying to transfer to the zero address", async function () {
+    await token.mint(user1.address, 1000);
+    await expect(token.connect(user1).transfer(ethers.ZeroAddress, 500)).to.be.reverted;
+  });
 
-  // it("Should revert if trying to transfer from the zero address", async function () {
-  //   await token.mint(user1.address, 1000);
-  //   await expect(token.connect(user1).transferFrom(ethers.ZeroAddress, user2.address, 500)).to.be.reverted;
-  // });
+  it("Should revert if trying to transfer from the zero address", async function () {
+    await token.mint(user1.address, 1000);
+    await expect(token.connect(user1).transferFrom(ethers.ZeroAddress, user2.address, 500)).to.be.reverted;
+  });
 
-  // it("Should revert if trying to transfer more tokens than the balance", async function () {
-  //   await token.mint(user1.address, 1000);
-  //   await expect(token.connect(user1).transfer(user2.address, 1500)).to.be.reverted; 
-  // });
+  it("Should revert if trying to transfer more tokens than the balance", async function () {
+    await token.mint(user1.address, 1000);
+    await expect(token.connect(user1).transfer(user2.address, 1500)).to.be.reverted; 
+  });
 
-  // it("Should revert if trying to burn more tokens than the balance", async function () {
-  //   await token.mint(user1.address, 1000);
-  //   await expect(token.connect(user1).burn(1500)).to.be.reverted;
-  // });
+  it("Should revert if trying to burn more tokens than the balance", async function () {
+    await token.mint(user1.address, 1000);
+    await expect(token.connect(user1).burn(1500)).to.be.reverted;
+  });
 
-  // it("Should revert if trying to transfer ownership to the zero address", async function () {
-  //   await expect(token.transferOwnership(ethers.ZeroAddress)).to.be.revertedWith(
-  //     "Invalid new owner address."
-  //   );
-  // });
+  it("Should revert if trying to transfer ownership to the zero address", async function () {
+    await expect(token.transferOwnership(ethers.ZeroAddress)).to.be.revertedWith(
+      "Invalid new owner address."
+    );
+  });
 
-  // it("Should allow the owner to add a minter", async function () {
-  //   await token.addMinter(minter.address);
-  //   expect(await token.hasRole(await token.MINTER_ROLE(), minter.address)).to.be.true;
-  // });
+  it("Should allow transfers", async function () {
+    await token.mint(user1.address, 1000);
+    await token.connect(user1).transfer(user2.address, 500);
+    expect(await token.balanceOf(user1.address)).to.equal(500);
+    expect(await token.balanceOf(user2.address)).to.equal(500);
+  });
 
-  // it("Should allow a minter to mint tokens", async function () {
-  //   await token.addMinter(minter.address);
-  //   await token.connect(minter).mint(user1.address, 1000);
-  //   expect(await token.balanceOf(user1.address)).to.equal(1000);
-  // });
+  it("Should allow burning", async function () {
+    await token.mint(user1.address, 1000);
+    await token.connect(user1).burn(500);
+    expect(await token.balanceOf(user1.address)).to.equal(500);
+  });
 
-  // it("Should not allow a non-minter to mint tokens", async function () {
-  //   await expect(token.connect(user1).mint(user2.address, 1000)).to.be.reverted;
-  // });
+  it("Should allow pausing and unpausing", async function () {
+    await token.mint(user1.address, 1000);
 
-  // it("Should allow transfers", async function () {
-  //   await token.mint(user1.address, 1000);
-  //   await token.connect(user1).transfer(user2.address, 500);
-  //   expect(await token.balanceOf(user1.address)).to.equal(500);
-  //   expect(await token.balanceOf(user2.address)).to.equal(500);
-  // });
+    // Pause transfers
+    await token.pause();
+    await expect(token.connect(user1).transfer(user2.address, 500)).to.be.reverted;
 
-  // it("Should allow burning", async function () {
-  //   await token.mint(user1.address, 1000);
-  //   await token.connect(user1).burn(500);
-  //   expect(await token.balanceOf(user1.address)).to.equal(500);
-  // });
+    // Unpause transfers
+    await token.unpause();
+    await token.connect(user1).transfer(user2.address, 500);
+    expect(await token.balanceOf(user1.address)).to.equal(500);
+    expect(await token.balanceOf(user2.address)).to.equal(500);
+  });
 
-  // it("Should allow pausing and unpausing", async function () {
-  //   await token.mint(user1.address, 1000);
+  it("Should revert if a non-owner tries to pause or unpause", async function () {
+    await expect(token.connect(user1).pause()).to.be.reverted;
+    await expect(token.connect(user1).unpause()).to.be.reverted;
+  });
 
-  //   // Pause transfers
-  //   await token.pause();
-  //   await expect(token.connect(user1).transfer(user2.address, 500)).to.be.reverted;
-
-  //   // Unpause transfers
-  //   await token.unpause();
-  //   await token.connect(user1).transfer(user2.address, 500);
-  //   expect(await token.balanceOf(user1.address)).to.equal(500);
-  //   expect(await token.balanceOf(user2.address)).to.equal(500);
-  // });
-
-  // it("Should revert if a non-owner tries to pause or unpause", async function () {
-  //   await expect(token.connect(user1).pause()).to.be.reverted;
-  //   await expect(token.connect(user1).unpause()).to.be.reverted;
-  // });
-
-  // it("Should allow the owner to transfer ownership", async function () {
-  //   await token.transferOwnership(user1.address);
-  //   expect(await token.owner()).to.equal(user1.address);
-  // });
+  it("Should allow the owner to transfer ownership", async function () {
+    await token.transferOwnership(user1.address);
+    expect(await token.owner()).to.equal(user1.address);
+  });
 
 });

@@ -1,5 +1,5 @@
 const { TronWeb } = require('tronweb')
-import * as MultiSigArtifacts from "../artifacts/contracts/MultiSigWalletB.sol/MultiSigWalletB.json";
+import * as MultiSigArtifacts from "../artifacts/contracts/MultiSigWallet.sol/MultiSigWallet.json";
 import * as StableTokenArtifacts from "../artifacts/contracts/StableToken.sol/StableToken.json";
 import * as TokenVaultArtifacts from "../artifacts/contracts/Vault.sol/TokenVault.json"; 
 
@@ -84,6 +84,19 @@ async function deployContract() {
 
   console.log("TokenVault deployed to:", vault.address);
 
+  // Encode the grantRole function call
+  const vaultOwnerRole = tronWeb.sha3("VAULTOWNER_ROLE");
+  const accountToGrant = multisigWallet.address;
+  const dataGrantRole = vault.contract.methods
+    .grantRole(vaultOwnerRole, accountToGrant)
+    .encodeABI();
+
+  // Submit the transaction through the MultiSigWallet
+  const txIdGrantRole = await multisigWallet
+    .submitTransaction(vault.address, 0, dataGrantRole)
+    .send({ feeLimit: 1000000000, shouldPollResponse: true });
+
+  console.log("Grant role transaction submitted:", txIdGrantRole);
 }
 
 // Freeze TRX, then deploy

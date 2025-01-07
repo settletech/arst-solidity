@@ -13,6 +13,12 @@ contract TokenVault is Ownable, AccessControl {
     constructor(IERC20 _token) Ownable(msg.sender) {
         token = _token;
         _grantRole(VAULTOWNER_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    modifier onlyContract() {
+        require(address(this) == msg.sender, "only contract");
+        _;
     }
 
     function transfer(address _recipient, uint256 _amount) public onlyRole(VAULTOWNER_ROLE) { 
@@ -22,5 +28,13 @@ contract TokenVault is Ownable, AccessControl {
 
     function getBalance() public view returns (uint256) {
         return token.balanceOf(address(this));
+    }
+
+    function grantRole(bytes32 role, address account) public override onlyRole(getRoleAdmin(role)) onlyContract {
+        _grantRole(role, account);
+    }
+
+    function revokeRole(bytes32 role, address account) public override onlyRole(getRoleAdmin(role)) onlyContract {
+        _revokeRole(role, account);
     }
 }
