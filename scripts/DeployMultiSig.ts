@@ -7,7 +7,7 @@ import * as TokenVaultArtifacts from "../artifacts/contracts/Vault.sol/TokenVaul
 const fullNode = 'https://api.nileex.io';
 const solidityNode = 'https://api.nileex.io';
 const eventServer = 'https://api.nileex.io';
-const privateKey = 'D9CFB5E4CDD192F5B67ED040C3B7D156BB4B08E02614279FC13E2BEBC317D5D2';
+const privateKey = '';
 
 const tronWeb = new TronWeb(fullNode, solidityNode, eventServer, privateKey);
 
