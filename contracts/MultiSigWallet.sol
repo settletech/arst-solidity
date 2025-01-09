@@ -4,8 +4,7 @@ pragma solidity 0.8.20;
 contract MultiSigWallet {
 
     mapping(address => bool) public isOwner;
-    //mapping(address => bool) public trustedContract;
-
+    
     uint256 public numConfirmationsRequired;
     address[] public owners;
     uint256 public activeOwners;
