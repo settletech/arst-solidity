@@ -7,7 +7,7 @@ import * as TokenVaultArtifacts from "../artifacts/contracts/Vault.sol/TokenVaul
 const fullNode = 'https://api.nileex.io';
 const solidityNode = 'https://api.nileex.io';
 const eventServer = 'https://api.nileex.io';
-const privateKey = '';
+const privateKey = 'D9CFB5E4CDD192F5B67ED040C3B7D156BB4B08E02614279FC13E2BEBC317D5D2';
 
 const tronWeb = new TronWeb(fullNode, solidityNode, eventServer, privateKey);
 
@@ -83,6 +83,7 @@ async function deployContract() {
   });
 
   console.log("TokenVault deployed to:", vault.address);
+  console.log("Vault contract:", vault.contract);
 
   // Encode the grantRole function call
   const vaultOwnerRole = tronWeb.sha3("VAULTOWNER_ROLE");
@@ -92,11 +93,15 @@ async function deployContract() {
     .encodeABI();
 
   // Submit the transaction through the MultiSigWallet
-  const txIdGrantRole = await multisigWallet
-    .submitTransaction(vault.address, 0, dataGrantRole)
-    .send({ feeLimit: 1000000000, shouldPollResponse: true });
+  try {
+    await multisigWallet.submitTransaction(vault.address, 0, dataGrantRole)
+    .send({ feeLimit: 1000000000 });
 
-  console.log("Grant role transaction submitted:", txIdGrantRole);
+    console.log("Grant role transaction submitted");
+  } catch (error) {
+    console.error("Error submiting Grant role transaction:", error);
+  }
+
 }
 
 // Freeze TRX, then deploy
