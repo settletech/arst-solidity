@@ -87,20 +87,11 @@ async function deployContract() {
 
   // Encode the grantRole function call
   const vaultOwnerRole = tronWeb.sha3("VAULTOWNER_ROLE");
-  const accountToGrant = multisigWallet.address;
-  const dataGrantRole = vault.contract.methods
-    .grantRole(vaultOwnerRole, accountToGrant)
-    .encodeABI();
-
-  // Submit the transaction through the MultiSigWallet
-  try {
-    await multisigWallet.submitTransaction(vault.address, 0, dataGrantRole)
+  await vault
+    .grantRole(vaultOwnerRole, multisigWallet.address)
     .send({ feeLimit: 1000000000 });
 
-    console.log("Grant role transaction submitted");
-  } catch (error) {
-    console.error("Error submiting Grant role transaction:", error);
-  }
+  console.log("VAULTOWNER_ROLE granted to MultiSigWallet");
 
 }
 
