@@ -1,0 +1,15 @@
+{
+    "default": {
+        "requireModule": [
+            "ts-node/register"
+        ],
+        "require": [
+            "typechain-types/index.ts",
+            "typechain-types/common.ts",
+            "typechain-types/@openzeppelin/**/**.ts",
+            "typechain-types/contracts/**/**.ts",
+            "typechain-types/factories/**/**.ts",
+            "features/**/*.ts"
+        ]
+    }
+}
