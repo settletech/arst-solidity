@@ -83,7 +83,6 @@ async function deployContract() {
   });
 
   console.log("TokenVault deployed to:", vault.address);
-  console.log("Vault contract:", vault.contract);
 
   // Encode the grantRole function call
   const vaultOwnerRole = tronWeb.sha3("VAULTOWNER_ROLE");
