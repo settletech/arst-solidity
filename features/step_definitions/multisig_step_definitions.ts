@@ -6,11 +6,13 @@ import { getScenariosData } from './common';
 
 let defaultMultisig: MultiSigWallet;
 let users: HardhatEthersSigner[];
+let multisigOwners: HardhatEthersSigner[];
 
 Before(async () => {
-    const { defaultMultisig: dm, users: us } = await getScenariosData();
+    const { defaultMultisig: dm, users: us, multisigOwners: mo } = await getScenariosData();
     users = us;
     defaultMultisig = dm!;
+    multisigOwners = mo;
 })
 
 Given("I am Tron User", async function () {
@@ -27,7 +29,7 @@ Then("I should get the complete list of owners of the MultiSig contract", async 
 })
 
 Given("I am Owner of Multisig contract", async function() {
-    this.user = users[0];
+    this.user = multisigOwners[0];
 })
 
 Then("I should see my account as one of the owners of the contract", async function() {

@@ -16,11 +16,11 @@ Before(async () => {
 })
 
 Given('I deployed the Token contract', function () {
-    this.tokenOwner = users[0];
+    this.tokenDeployer = users[0];
 });
 
 Given('I transfered the ownership to the Multisig', async function () {
-    await defaultStableToken.connect(this.tokenOwner)
+    await defaultStableToken.connect(this.tokenDeployer)
         .transferOwnership(await defaultMultisig.getAddress())
 });
 

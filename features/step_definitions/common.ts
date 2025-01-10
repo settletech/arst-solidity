@@ -16,7 +16,9 @@ async function deployContractFixture() {
     const defaultStableToken: StableToken = await TokenFactory.connect(user1).deploy() as unknown as StableToken;
     const tokenContact: ethers.Contract = await hhEthers.getContractAt("StableToken", await defaultStableToken.getAddress());
 
-    return { users, defaultMultisig, defaultStableToken, tokenContact, multisigContract }
+    const multisigOwners = [user1, user2, user3];
+
+    return { users, defaultMultisig, defaultStableToken, tokenContact, multisigContract, multisigOwners }
 }
 
 export async function getScenariosData() {

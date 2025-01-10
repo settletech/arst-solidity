@@ -16,3 +16,10 @@ through Multisig consensus
     Scenario: Trying to mint from another account
         When I call function mint in StableToken with receiver address and amount
         Then the transaction should revert
+    
+    Scenario: Execute mint transaction
+        Given I am Owner of Multisig contract
+        When I call submitTransaction with the address of the ARST token, value 0 and data encoded correctly as EVM protocol defines
+        And I call executeTransaction with the index of the submitted transaction
+        Then the transaction should execute
+        And the receiver should receive the amount of StableToken defined

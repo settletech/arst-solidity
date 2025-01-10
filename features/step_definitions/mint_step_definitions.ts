@@ -70,3 +70,17 @@ Then('the transaction should revert', async function () {
         },
     );   
 });
+
+When('I call executeTransaction with the index of the submitted transaction', async function () {
+    await defaultMultisig.executeTransaction(0);
+});
+
+Then('the transaction should execute', async function () {
+    const transaction = await defaultMultisig.getTransaction(0);
+    assert.equal(transaction[3], true);
+});
+
+Then('the receiver should receive the amount of StableToken defined', async function () {
+    const userBalance = await defaultStableToken.balanceOf(users[1].address);
+    assert.equal(userBalance, 100);
+});
