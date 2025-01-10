@@ -11,9 +11,10 @@ Feature: Multisig
         When I call getOwners function in Multisig
         Then I should get the complete list of owners of the MultiSig contract
     
-    Scenario: Check Multisig accopunt ownership
-    An ownership of the multisig should see his/her address in the owners list
+    Scenario: Check Multisig account ownership
+    An owner of the multisig should see his/her address in the owners list
 
-        Given I am Owner of Multisig contract
+        Given I am Tron User
+        And I am Owner of Multisig contract
         When I call getOwners function in Multisig
         Then I should see my account as one of the owners of the contract

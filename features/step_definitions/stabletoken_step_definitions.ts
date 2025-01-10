@@ -34,12 +34,12 @@ Then('I should see my address as contract owner', function () {
 
 Then('I should see the address of the Multisig contract as contract owner', async function () {
     const multisigAddr = await defaultMultisig.getAddress();
-    const tokenOwnerAddr = await defaultStableToken.owner()
+    const tokenOwnerAddr = await defaultStableToken.owner();
     assert.equal(multisigAddr, tokenOwnerAddr);
 });
 
 Then('I should NOT see my address as contract owner', async function () {
     const tokenOwnerAddr = await defaultStableToken.owner()
-    const oldOwnerAddr = users[0].address;
+    const oldOwnerAddr = this.tokenOwner;
     assert.notEqual(tokenOwnerAddr, oldOwnerAddr);
 });

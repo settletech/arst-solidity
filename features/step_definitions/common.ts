@@ -7,9 +7,9 @@ import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers';
 
 async function deployContractFixture() {
     const users: HardhatEthersSigner[] = await hhEthers.getSigners();
-    const WalletFactory = await hhEthers.getContractFactory("MultiSigWallet");
+    const MultiSigWalletFactory = await hhEthers.getContractFactory("MultiSigWallet");
     const [user1, user2, user3] = users; // First 3 users of Multisig will be owners
-    const defaultMultisig: MultiSigWallet = await WalletFactory.deploy([user1.address, user2.address, user3.address], 1) as unknown as MultiSigWallet;
+    const defaultMultisig: MultiSigWallet = await MultiSigWalletFactory.deploy([user1.address, user2.address, user3.address], 1) as unknown as MultiSigWallet;
     const multisigContract: ethers.Contract = await hhEthers.getContractAt("MultiSigWallet", await defaultMultisig.getAddress());
 
     const TokenFactory = await hhEthers.getContractFactory("StableToken");

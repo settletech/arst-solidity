@@ -14,6 +14,5 @@ through Multisig consensus
         And an event SubmitTransaction should be emitted
 
     Scenario: Trying to mint from another account
-        Given I am Tron User
         When I call function mint in StableToken with receiver address and amount
         Then the transaction should revert

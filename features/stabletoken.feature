@@ -13,13 +13,15 @@ Feature: StableToken
     of the onwers of the Multisig
 
         Example: Multisig as Token owner -- Transfer ownership
-            Given I deployed the Token contract
+            Given I am Tron User
+            And I deployed the Token contract
             And I transfered the ownership to the Multisig
             When I call owner public view in Token contract
             Then I should see the address of the Multisig contract as contract owner
         
         Example: Multisig as Token owner -- Not owner anymore
-            Given I deployed the Token contract
+            Given I am Tron User
+            And I deployed the Token contract
             And I transfered the ownership to the Multisig
             When I call owner public view in Token contract
             Then I should NOT see my address as contract owner
