@@ -22,21 +22,27 @@ contract TokenVault is Ownable, AccessControl {
     }
 
     function transfer(address _recipient, uint256 _amount) public onlyRole(VAULTOWNER_ROLE) { 
-        // Do we need the require?
         require(token.transfer(_recipient, _amount), "Transfer failed");
         emit Transfer(_recipient, _amount);
     }
 
-    // Do we need it?
     function getBalance() public view returns (uint256) {
         return token.balanceOf(address(this));
     }
 
-    function grantRole(bytes32 role, address account) public override onlyRole(getRoleAdmin(role)) onlyContract {
+    function grantRole(bytes32 role, address account) 
+        public 
+        override 
+        onlyOwner
+    {
         _grantRole(role, account);
     }
 
-    function revokeRole(bytes32 role, address account) public override onlyRole(getRoleAdmin(role)) onlyContract {
+    function revokeRole(bytes32 role, address account) 
+        public 
+        override
+        onlyOwner
+    {
         _revokeRole(role, account);
     }
 }

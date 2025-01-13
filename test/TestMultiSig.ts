@@ -313,7 +313,7 @@ describe("ARST Token Minting", function () {
   });
 });
 
- describe("Vaul Testing", function () {
+ describe("Vault Testing", function () {
 
   let ownerRole: any;
   let adminRole: any;
@@ -396,4 +396,33 @@ describe("ARST Token Minting", function () {
     expect(await token.balanceOf(owner2.address)).to.be.equal(ONE_ETHER);
   });
 
+  it("should validate the access control roles", async () => {
+    const VAULTOWNER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULTOWNER_ROLE"));
+    const DEFAULT_ADMIN_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULTOWNER_ROLE"));
+
+    expect(await vault.hasRole(VAULTOWNER_ROLE, owner1.address)).to.be.true;
+    expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, owner1.address)).to.be.true;
+  });
+
+  it("should validate that deployer cannot create a new role", async () => {
+    const VAULTOWNER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULTOWNER_ROLE"));
+
+    await expect(vault.grantRole(VAULTOWNER_ROLE, owner2.address))
+      .to.be.revertedWithCustomError(vault, "OwnableUnauthorizedAccount");
+  });
+
+  it ("should validate the granting of a new role", async () => {
+    const VAULTOWNER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULTOWNER_ROLE"));
+    const ABI = ["function grantRole(bytes32 role, address account)"];
+
+    const valueHex = new ethers.Interface(ABI);
+    const mintData = valueHex.encodeFunctionData("grantRole", [VAULTOWNER_ROLE, owner2.address]);
+
+    await wallet.connect(owner1).submitTransaction(vault.target, ZERO, mintData);
+
+    await expect(wallet.connect(owner2).confirmTransaction(ONE))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
+  });
 });
