@@ -1,10 +1,12 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { MultiSigWallet, StableToken } from "../typechain-types";
+import { MultiSigWallet, StableToken, TokenVault } from "../typechain-types";
 
 let wallet: MultiSigWallet;
 let token: StableToken;
+let vault: TokenVault;
 let owner1: any, owner2: any, owner3: any, owner4, notOwner: any;
+const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 const ZERO_ETHER = ethers.parseEther("0");
 const ONE_ETHER = ethers.parseEther("1");
 const TWO_ETHER = ethers.parseEther("2");
@@ -106,7 +108,7 @@ describe("MultiSigWallet", function () {
     await expect(wallet.connect(owner1).submitTransaction(owner3.address, ONE_ETHER, "0x")).not.to.be.reverted;
   
     // Attempt to execute the transaction without enough confirmations
-    await expect(wallet.connect(owner1).executeTransaction(ZERO)).to.be.reverted; 
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).to.be.revertedWith("Not enough confirmations"); 
   });
 
 
@@ -122,7 +124,7 @@ describe("MultiSigWallet", function () {
       .withArgs(owner2.address, ZERO);
 
     await expect(wallet.connect(owner1).executeTransaction(ZERO))
-      .to.be.reverted
+    .to.be.revertedWith("Not enough confirmations")                 
 
     // Confirm the transaction again
     await expect(wallet.connect(owner2).confirmTransaction(ZERO)).not.to.be.reverted;
@@ -193,7 +195,7 @@ describe("MultiSigWallet", function () {
 });
 
 
-describe("ARST Token Minting", function () {
+describe("STT Token Minting", function () {
 
   beforeEach(async function () {
     [owner1, owner2, owner3, owner4, notOwner] = await ethers.getSigners();
@@ -207,9 +209,6 @@ describe("ARST Token Minting", function () {
     await token.waitForDeployment();
 
     await token.transferOwnership(wallet.target);
-
-    // Send funds to the multi signature contract
-    await owner1.sendTransaction({ to: wallet.target, value: TWO_ETHER});
   });
 
   it("should verify new token owner", async () => {
@@ -311,4 +310,90 @@ describe("ARST Token Minting", function () {
 
     expect(await token.balanceOf(owner3.address)).to.be.equal(TEN_ETHER);
   });
+  
+});
+
+describe("Vaul Testing", function () {
+
+  let ownerRole: any;
+  let adminRole: any;
+
+  beforeEach(async function () {
+    [owner1, owner2, owner3, owner4, notOwner] = await ethers.getSigners();
+
+    const WalletFactory = await ethers.getContractFactory("MultiSigWallet");
+    wallet = await WalletFactory.deploy([owner1.address, owner2.address, owner3.address], 2) as MultiSigWallet;
+    await wallet.waitForDeployment();
+
+    const TokenFactory = await ethers.getContractFactory("StableToken");
+    token = await TokenFactory.deploy() as StableToken;
+    await token.waitForDeployment();
+
+    await token.transferOwnership(wallet.target);
+
+    const VaultFactory = await ethers.getContractFactory("TokenVault");
+    vault = await VaultFactory.deploy(token.target) as TokenVault;
+    await vault.waitForDeployment();
+
+    await vault.transferOwnership(wallet.target);
+
+    ownerRole = await vault.VAULTOWNER_ROLE();
+    adminRole = await vault.DEFAULT_ADMIN_ROLE();
+
+    // Transfer tokens to the vault
+    const ABI = ["function mint(address to, uint256 amount)"];
+
+    const valueHex = new ethers.Interface(ABI);
+    const mintData = valueHex.encodeFunctionData("mint", [vault.target, TEN_ETHER]);
+
+    await wallet.connect(owner1).submitTransaction(token.target, ZERO, mintData);
+
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
+  });
+
+  it("should verify multisig as vault owner", async () => {
+    expect(await vault.owner()).to.be.equal(wallet.target);
+  });
+
+  it("should validate the vault owner role", async () => {
+    expect(await vault.hasRole(ownerRole, owner1.address)).to.be.true;
+  });
+
+  it("should validate the default admin role", async () => {
+    expect(await vault.hasRole(adminRole, owner1.address)).to.be.true;
+  });
+
+  it("should validate the token address admin role", async () => {
+    expect(await vault.token()).to.be.equal(token.target);
+  });
+  
+  it("should validate vault balance ", async () => {
+    expect(await token.balanceOf(vault.target)).to.be.equal(TEN_ETHER);
+
+    expect(await vault.getBalance()).to.be.equal(TEN_ETHER);
+  });
+
+  it("should validate only vault owner can transfer", async () => {
+    await expect(vault.connect(owner2).transfer(owner2.address, ONE_ETHER))
+      .to.be.revertedWithCustomError(vault, "AccessControlUnauthorizedAccount")
+      .withArgs(owner2.address, ownerRole);
+  });
+
+  it("should validate transfer receipient", async () => {
+    await expect(vault.transfer(ADDRESS_ZERO, ONE_ETHER))
+      .to.be.revertedWithCustomError(token, "ERC20InvalidReceiver")
+      .withArgs(ADDRESS_ZERO);
+  });
+
+  it("should validate that vault owner can transfer", async () => {
+    await expect(vault.transfer(owner2.address, ONE_ETHER))
+      .to.emit(vault, "Transfer")
+      .withArgs(owner2.address, ONE_ETHER);
+
+    expect(await token.balanceOf(owner2.address)).to.be.equal(ONE_ETHER);
+  });
+
 });

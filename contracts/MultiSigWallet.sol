@@ -126,7 +126,7 @@ contract MultiSigWallet {
 
         require(
             transaction.numConfirmations >= numConfirmationsRequired,
-            "cannot execute tx"
+            "Not enough confirmations"
         );
 
         transaction.executed = true;
