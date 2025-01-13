@@ -424,5 +424,7 @@ describe("ARST Token Minting", function () {
       .not.to.be.reverted;
 
     await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
+
+    expect(await vault.hasRole(VAULTOWNER_ROLE, owner2.address)).to.be.true;
   });
 });
