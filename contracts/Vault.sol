@@ -38,7 +38,7 @@ contract TokenVault is Ownable, AccessControl {
         _grantRole(role, account);
     }
 
-    function revokeRole(bytes32 role, address account) 
+    function revokeRole(bytes32 role, address account)
         public 
         override
         onlyOwner

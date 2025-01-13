@@ -6,7 +6,9 @@ let wallet: MultiSigWallet;
 let token: StableToken;
 let vault: TokenVault;
 let owner1: any, owner2: any, owner3: any, owner4, notOwner: any;
+const VAULTOWNER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULTOWNER_ROLE"));
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
+
 const ZERO_ETHER = ethers.parseEther("0");
 const ONE_ETHER = ethers.parseEther("1");
 const TWO_ETHER = ethers.parseEther("2");
@@ -404,19 +406,20 @@ describe("ARST Token Minting", function () {
     expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, owner1.address)).to.be.true;
   });
 
-  it("should validate that deployer cannot create a new role", async () => {
-    const VAULTOWNER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULTOWNER_ROLE"));
-
+  it("should validate that a not-owner account cannot create a new role", async () => {
     await expect(vault.grantRole(VAULTOWNER_ROLE, owner2.address))
+      .to.be.revertedWithCustomError(vault, "OwnableUnauthorizedAccount");
+
+    await expect(vault.connect(notOwner).grantRole(VAULTOWNER_ROLE, owner2.address))
       .to.be.revertedWithCustomError(vault, "OwnableUnauthorizedAccount");
   });
 
   it ("should validate the granting of a new role", async () => {
-    const VAULTOWNER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULTOWNER_ROLE"));
     const ABI = ["function grantRole(bytes32 role, address account)"];
-
     const valueHex = new ethers.Interface(ABI);
     const mintData = valueHex.encodeFunctionData("grantRole", [VAULTOWNER_ROLE, owner2.address]);
+
+    expect(await vault.hasRole(VAULTOWNER_ROLE, owner2.address)).to.be.false;
 
     await wallet.connect(owner1).submitTransaction(vault.target, ZERO, mintData);
 
@@ -426,5 +429,44 @@ describe("ARST Token Minting", function () {
     await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
 
     expect(await vault.hasRole(VAULTOWNER_ROLE, owner2.address)).to.be.true;
+  });
+
+  //function revokeRole(bytes32 role, address account)
+  it ("should be possible to revoke role", async () => {
+    const ABI = ["function revokeRole(bytes32 role, address account)"];
+    const valueHex = new ethers.Interface(ABI);
+    const mintData = valueHex.encodeFunctionData("revokeRole", [VAULTOWNER_ROLE, owner1.address]);
+
+    expect(await vault.hasRole(VAULTOWNER_ROLE, owner1.address)).to.be.true;
+
+    await wallet.connect(owner2).submitTransaction(vault.target, ZERO, mintData);
+
+    await expect(wallet.connect(owner3).confirmTransaction(ONE))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner2).executeTransaction(ONE)).not.to.be.reverted;
+
+    expect(await vault.hasRole(VAULTOWNER_ROLE, owner1.address)).to.be.false;
+  });
+
+  it ("should validate that the new owner can transfer funds", async () => {
+    const ABI = ["function grantRole(bytes32 role, address account)"];
+    const valueHex = new ethers.Interface(ABI);
+    const mintData = valueHex.encodeFunctionData("grantRole", [VAULTOWNER_ROLE, owner2.address]);
+
+    expect(await token.balanceOf(owner3.address)).to.be.equal(ZERO_ETHER);
+
+    await wallet.connect(owner1).submitTransaction(vault.target, ZERO_ETHER, mintData);
+
+    await expect(wallet.connect(owner2).confirmTransaction(ONE))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
+
+    await expect(vault.connect(owner2).transfer(owner3.address, ONE_ETHER))
+      .to.emit(vault, "Transfer")
+      .withArgs(owner3.address, ONE_ETHER);
+
+    expect(await token.balanceOf(owner3.address)).to.be.equal(ONE_ETHER);
   });
 });
