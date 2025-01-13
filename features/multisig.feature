@@ -4,14 +4,14 @@ Feature: Multisig
     Every action related to "Multisig governance" must be made after voting a proposed transaction.
     The following scenarios will demonstrate the actions that can be done via Multisig voting.
     
-    Scenario: Get Multisig Owners
+    Scenario: Get Multisig Owners (uid:b23b06d6-a739-4baa-ad83-dfd62944023b)
     Any blockchain user should retrieve the current owners list from the contract
         
         Given I am Tron User
         When I call getOwners function in Multisig
         Then I should get the complete list of owners of the MultiSig contract
     
-    Scenario: Check Multisig account ownership
+    Scenario: Check Multisig account ownership (uid:458483c4-0d39-4e58-919b-c94f8973a780)
     An owner of the multisig should see his/her address in the owners list
 
         Given I am Tron User

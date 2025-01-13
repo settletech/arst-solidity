@@ -4,8 +4,9 @@
   "description": "arst stablecoin",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "cucumber": "cucumber-js"
+    "test": "hardhat test",
+    "test:cucumber": "cucumber-js",
+    "test:cucumber:export": "cucumber-js -f json > results.json"
   },
   "author": "Eduardo Castillo Salgado",
   "license": "ISC",
