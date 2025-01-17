@@ -134,6 +134,23 @@ describe("MultiSigWallet", function () {
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
   });
 
+  it ("should change the number of confirmations", async () => {
+    const ABI = ["function changeRequirement(uint256 _numConfirmationsRequired)"];
+
+    const valueHex = new ethers.Interface(ABI);
+    const mintData = valueHex.encodeFunctionData("changeRequirement", [1]);
+    console.log("minData: ", mintData);
+
+    await wallet.connect(owner1).submitTransaction(wallet.target, ZERO, mintData);
+
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
+
+    expect(await wallet.numConfirmationsRequired()).to.be.equal(1);
+  });
+
   
   it("should prevent a non-owner from revoking a confirmation", async function () {
   
@@ -239,7 +256,13 @@ describe("ARST Token Minting", function () {
     const ABI = ["function addOwner(address _owner)"];
 
     const valueHex = new ethers.Interface(ABI);
+    
+    //const addOwnerData = valueHex.encodeFunctionData("addOwner", [notOwner.address]);
+    const newAddress = "TU8bY3WLhL3xgfLDhuyPbaGLiDNAioEufe";
+    console.log(notOwner.address);
     const addOwnerData = valueHex.encodeFunctionData("addOwner", [notOwner.address]);
+    console.log(addOwnerData)
+    
 
     await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO, addOwnerData))
       .not.to.be.reverted;
@@ -384,7 +407,7 @@ describe("ARST Token Minting", function () {
       .withArgs(owner2.address, ownerRole);
   });
 
-  it("should validate transfer receipient", async () => {
+  it("should validate transfer recipient", async () => {
     await expect(vault.transfer(ADDRESS_ZERO, ONE_ETHER))
       .to.be.revertedWithCustomError(token, "ERC20InvalidReceiver")
       .withArgs(ADDRESS_ZERO);

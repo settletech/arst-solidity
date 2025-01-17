@@ -64,5 +64,4 @@ contract StableToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permi
     function _update(address from, address to, uint256 amount) internal override(ERC20, ERC20Pausable) {
         super._update(from, to, amount);
     }
-
 }
