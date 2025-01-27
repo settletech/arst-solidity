@@ -7,7 +7,30 @@ const config: HardhatUserConfig = {
     hardhat: {
       blockGasLimit: 30000000, 
     },
+    fuji: {
+      url: "https://api.avax-test.network/ext/bc/C/rpc" || "",
+      accounts:
+      PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
+    },
   },
+  sourcify: {
+    enabled: true
+  },
+  etherscan: {
+    apiKey: {
+      fuji: "snowtrace",
+    },
+    customChains: [
+      {
+        network: "fuji",
+        chainId: 43113,
+        urls: {
+          apiURL: "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
+          browserURL: "https://avalanche.testnet.localhost:8080"
+        }
+      }
+    ]
+  }
 };
 
 export default config;
