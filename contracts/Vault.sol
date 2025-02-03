@@ -16,11 +16,6 @@ contract TokenVault is Ownable, AccessControl {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    modifier onlyContract() {
-        require(address(this) == msg.sender, "only contract");
-        _;
-    }
-
     function transfer(address _recipient, uint256 _amount) public onlyRole(VAULTOWNER_ROLE) { 
         require(token.transfer(_recipient, _amount), "Transfer failed");
         emit Transfer(_recipient, _amount);
@@ -30,11 +25,11 @@ contract TokenVault is Ownable, AccessControl {
         return token.balanceOf(address(this));
     }
 
-    function grantRole(bytes32 role, address account) public override onlyRole(getRoleAdmin(role)) onlyContract {
+    function grantRole(bytes32 role, address account) public override onlyOwner {
         _grantRole(role, account);
     }
 
-    function revokeRole(bytes32 role, address account) public override onlyRole(getRoleAdmin(role)) onlyContract {
+    function revokeRole(bytes32 role, address account) public override onlyOwner {
         _revokeRole(role, account);
     }
 }
