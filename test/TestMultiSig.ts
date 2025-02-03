@@ -258,9 +258,12 @@ describe("ARST Token Minting", function () {
     const valueHex = new ethers.Interface(ABI);
     
     //const addOwnerData = valueHex.encodeFunctionData("addOwner", [notOwner.address]);
-    const newAddress = "TU8bY3WLhL3xgfLDhuyPbaGLiDNAioEufe";
+    //const newAddress = "TU8bY3WLhL3xgfLDhuyPbaGLiDNAioEufe";
+    const newAddress = "0xC738D181D69F1933BC94A557D3AD2D0E83153815";
+
     console.log(notOwner.address);
-    const addOwnerData = valueHex.encodeFunctionData("addOwner", [notOwner.address]);
+
+    const addOwnerData = valueHex.encodeFunctionData("addOwner", [newAddress]);
     console.log(addOwnerData)
     
 
@@ -272,7 +275,8 @@ describe("ARST Token Minting", function () {
 
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
 
-    expect(await wallet.isOwner(notOwner.address)).to.be.true;
+    //expect(await wallet.isOwner(notOwner.address)).to.be.true;
+    expect(await wallet.isOwner(newAddress)).to.be.true;
   });
 
   it("should allow removing an owner", async function () {
