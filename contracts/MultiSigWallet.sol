@@ -12,8 +12,9 @@ contract MultiSigWallet {
         address to;
         uint256 value;
         bytes data;
-        bool executed;
         uint256 numConfirmations;
+        uint256 deadline;
+        bool executed;
     }
 
     Transaction[] public transactions;
@@ -83,8 +84,9 @@ contract MultiSigWallet {
     function getBalance() external view returns (uint256){
         return address(this).balance;
     }
-
+    
     receive() external payable {
+        require(msg.value > 0, "msg.value < 0");
         emit Deposit(msg.sender, msg.value, address(this).balance);
     }
 
@@ -95,7 +97,8 @@ contract MultiSigWallet {
             value: _value,
             data: _data,
             executed: false,
-            numConfirmations: 1
+            numConfirmations: 1,
+            deadline: 5 days
         }));
         isConfirmed[txIndex][msg.sender] = true;
         emit SubmitTransaction(msg.sender, txIndex, _to, _value, _data);
@@ -110,6 +113,7 @@ contract MultiSigWallet {
         notConfirmed(_txIndex)
     {
         Transaction storage transaction = transactions[_txIndex];
+        require(transaction.deadline < block.timestamp, "transaction outdated");
         transaction.numConfirmations += 1;
         isConfirmed[_txIndex][msg.sender] = true;
 
@@ -123,7 +127,7 @@ contract MultiSigWallet {
         notExecuted(_txIndex)
     {
         Transaction storage transaction = transactions[_txIndex];
-
+        require(transaction.deadline < block.timestamp, "transaction outdated");
         require(
             transaction.numConfirmations >= numConfirmationsRequired,
             "Not enough confirmations"
@@ -144,7 +148,7 @@ contract MultiSigWallet {
         notExecuted(_txIndex)
     {
         Transaction storage transaction = transactions[_txIndex];
-
+        require(transaction.deadline < block.timestamp, "transaction outdated");
         require(isConfirmed[_txIndex][msg.sender], "tx not confirmed");
 
         transaction.numConfirmations -= 1;
@@ -193,7 +197,8 @@ contract MultiSigWallet {
             uint256 value,
             bytes memory data,
             bool executed,
-            uint256 numConfirmations
+            uint256 numConfirmations,
+            uint256 deadline
         )
     {
         Transaction memory transaction = transactions[_txIndex];
@@ -203,7 +208,8 @@ contract MultiSigWallet {
             transaction.value,
             transaction.data,
             transaction.executed,
-            transaction.numConfirmations
+            transaction.numConfirmations,
+            transaction.deadline
         );
     }
 }

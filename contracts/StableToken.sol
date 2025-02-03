@@ -3,11 +3,12 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
+//import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
-contract StableToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permit {
+contract StableToken is ERC20, ERC20Burnable, Ownable, Pausable, ERC20Permit {
 
     constructor()
         ERC20("StableToken", "STT") 
@@ -40,14 +41,14 @@ contract StableToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permi
         return true;
     }
 
-    function mint(address to, uint256 amount) public onlyOwner {
+    function mint(address to, uint256 amount) whenNotPaused public onlyOwner {
         super._mint(to, amount);
     }
 
-    function burn(address account, uint256 amount) internal virtual {
+    /*function burn(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: burn from the zero address");
         super._burn(account, amount); 
-    }
+    } */
 
     function pause() public onlyOwner {
         _pause();
@@ -58,8 +59,8 @@ contract StableToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permi
     }
 
     // Override _update
-    function _update(address from, address to, uint256 amount) internal override(ERC20, ERC20Pausable) {
+    /*function _update(address from, address to, uint256 amount) internal override(ERC20, ERC20Pausable) {
         super._update(from, to, amount);
-    }
+    } */
 
 }

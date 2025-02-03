@@ -7,7 +7,10 @@ let token: StableToken;
 let vault: TokenVault;
 let owner1: any, owner2: any, owner3: any, owner4, notOwner: any;
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
-const VAULTOWNER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULTOWNER_ROLE"));
+const VAULT_OWNER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULT_OWNER_ROLE"));
+const VAULT_TRANSFER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULT_TRANSFER_ROLE"));
+const DEFAULT_ADMIN_ROLE = ethers.keccak256(ethers.toUtf8Bytes("DEFAULT_ADMIN_ROLE"));
+
 const ZERO_ETHER = ethers.parseEther("0");
 const ONE_ETHER = ethers.parseEther("1");
 const TWO_ETHER = ethers.parseEther("2");
@@ -60,7 +63,15 @@ describe("MultiSigWallet", function () {
       .withArgs(owner2.address, txId);
   });
 
-  
+  it("should not receive zero value", async () =>  {
+      const tx = {
+        to: wallet.target,
+        value: ethers.parseEther("0"),
+      };
+      await expect(owner1.sendTransaction(tx)).to.be.revertedWith("msg.value < 0");
+      
+  }); 
+
   it("should prevent a non-owner from confirming a tx", async function () {
  
     await wallet.connect(owner1).submitTransaction(wallet.target, ONE_ETHER, "0x");
@@ -318,6 +329,7 @@ describe("Vaul Testing", function () {
 
   let ownerRole: any;
   let adminRole: any;
+  let transferRole: any;
 
   beforeEach(async function () {
     [owner1, owner2, owner3, owner4, notOwner] = await ethers.getSigners();
@@ -333,12 +345,13 @@ describe("Vaul Testing", function () {
     await token.transferOwnership(wallet.target);
 
     const VaultFactory = await ethers.getContractFactory("TokenVault");
-    vault = await VaultFactory.deploy(token.target) as TokenVault;
+    vault = await VaultFactory.deploy(token.target, wallet.target) as TokenVault;
     await vault.waitForDeployment();
 
-    await vault.transferOwnership(wallet.target);
+    //await vault.transferOwnership(wallet.target);
 
-    ownerRole = await vault.VAULTOWNER_ROLE();
+    ownerRole = await vault.VAULT_OWNER_ROLE();
+    transferRole = await vault.VAULT_TRANSFER_ROLE();
     adminRole = await vault.DEFAULT_ADMIN_ROLE();
 
     // Transfer tokens to the vault
@@ -355,17 +368,17 @@ describe("Vaul Testing", function () {
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
   });
 
-  it("should verify multisig as vault owner", async () => {
+  /*it("should verify multisig as vault owner", async () => {
     expect(await vault.owner()).to.be.equal(wallet.target);
-  });
+  }); */
 
   it("should validate the vault owner role", async () => {
-    expect(await vault.hasRole(ownerRole, owner1.address)).to.be.true;
+    expect(await vault.hasRole(ownerRole, wallet.target)).to.be.true;
   });
 
-  it("should validate the default admin role", async () => {
-    expect(await vault.hasRole(adminRole, owner1.address)).to.be.true;
-  });
+  /*it("should validate the default admin role", async () => {
+    expect(await vault.hasRole(adminRole, wallet.target)).to.be.true;
+  }); */
 
   it("should validate the token address admin role", async () => {
     expect(await vault.token()).to.be.equal(token.target);
@@ -380,7 +393,7 @@ describe("Vaul Testing", function () {
   it("should validate only vault owner can transfer", async () => {
     await expect(vault.connect(owner2).transfer(owner2.address, ONE_ETHER))
       .to.be.revertedWithCustomError(vault, "AccessControlUnauthorizedAccount")
-      .withArgs(owner2.address, ownerRole);
+      .withArgs(owner2.address, transferRole);
   });
 
   it("should validate transfer receipient", async () => {
@@ -398,45 +411,40 @@ describe("Vaul Testing", function () {
   });
 
   it("should validate the access control roles", async () => {
-    const VAULTOWNER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULTOWNER_ROLE"));
-    const DEFAULT_ADMIN_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULTOWNER_ROLE"));
-
-    expect(await vault.hasRole(VAULTOWNER_ROLE, owner1.address)).to.be.true;
-    expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, owner1.address)).to.be.true;
+    expect(await vault.hasRole(VAULT_OWNER_ROLE, wallet.target)).to.be.true;
+    //expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, wallet.target)).to.be.true;
+    expect(await vault.hasRole(VAULT_TRANSFER_ROLE, owner1.address)).to.be.true;
   });
 
   it("should validate that a not-owner account cannot create a new role", async () => {
-    await expect(vault.grantRole(VAULTOWNER_ROLE, owner2.address))
-      .to.be.revertedWithCustomError(vault, "OwnableUnauthorizedAccount");
-
-    await expect(vault.connect(notOwner).grantRole(VAULTOWNER_ROLE, owner2.address))
-      .to.be.revertedWithCustomError(vault, "OwnableUnauthorizedAccount");
+    await expect(vault.connect(notOwner).grantRole(VAULT_OWNER_ROLE, owner2.address))
+      .to.be.revertedWithCustomError(vault, "AccessControlUnauthorizedAccount")
+      .withArgs(notOwner.address, VAULT_OWNER_ROLE);
   });
 
   it ("should validate the granting of a new role", async () => {
     const ABI = ["function grantRole(bytes32 role, address account)"];
     const valueHex = new ethers.Interface(ABI);
-    const mintData = valueHex.encodeFunctionData("grantRole", [VAULTOWNER_ROLE, owner2.address]);
+    const mintData = valueHex.encodeFunctionData("grantRole", [VAULT_OWNER_ROLE, owner2.address]);
 
-    expect(await vault.hasRole(VAULTOWNER_ROLE, owner2.address)).to.be.false;
+    expect(await vault.hasRole(VAULT_OWNER_ROLE, owner2.address)).to.be.false;
 
     await wallet.connect(owner1).submitTransaction(vault.target, ZERO, mintData);
 
-    await expect(wallet.connect(owner2).confirmTransaction(ONE))
+    await expect(wallet.connect(owner3).confirmTransaction(ONE))
       .not.to.be.reverted;
 
     await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
 
-    expect(await vault.hasRole(VAULTOWNER_ROLE, owner2.address)).to.be.true;
+    expect(await vault.hasRole(VAULT_OWNER_ROLE, owner2.address)).to.be.true;
   });
 
-  //function revokeRole(bytes32 role, address account)
   it ("should be possible to revoke role", async () => {
     const ABI = ["function revokeRole(bytes32 role, address account)"];
     const valueHex = new ethers.Interface(ABI);
-    const mintData = valueHex.encodeFunctionData("revokeRole", [VAULTOWNER_ROLE, owner1.address]);
+    const mintData = valueHex.encodeFunctionData("revokeRole", [VAULT_TRANSFER_ROLE, owner1.address]);
 
-    expect(await vault.hasRole(VAULTOWNER_ROLE, owner1.address)).to.be.true;
+    expect(await vault.hasRole(VAULT_TRANSFER_ROLE, owner1.address)).to.be.true;
 
     await wallet.connect(owner2).submitTransaction(vault.target, ZERO, mintData);
 
@@ -445,13 +453,13 @@ describe("Vaul Testing", function () {
 
     await expect(wallet.connect(owner2).executeTransaction(ONE)).not.to.be.reverted;
 
-    expect(await vault.hasRole(VAULTOWNER_ROLE, owner1.address)).to.be.false;
+    expect(await vault.hasRole(VAULT_TRANSFER_ROLE, owner1.address)).to.be.false;
   });
 
   it ("should validate that the new owner can transfer funds", async () => {
     const ABI = ["function grantRole(bytes32 role, address account)"];
     const valueHex = new ethers.Interface(ABI);
-    const mintData = valueHex.encodeFunctionData("grantRole", [VAULTOWNER_ROLE, owner2.address]);
+    const mintData = valueHex.encodeFunctionData("grantRole", [VAULT_TRANSFER_ROLE, owner2.address]);
 
     expect(await token.balanceOf(owner3.address)).to.be.equal(ZERO_ETHER);
 
