@@ -57,7 +57,8 @@ async function deployContracts() {
   const VAULTOWNER_ROLE = ethers.keccak256(
     ethers.toUtf8Bytes("VAULTOWNER_ROLE")
   );
-  await vault.grantRole(VAULTOWNER_ROLE, multisigWallet.target);
+
+  await vault.transferOwnership(multisigWallet.target);
 
   console.log("VAULTOWNER_ROLE granted to MultiSigWalletB");
 }

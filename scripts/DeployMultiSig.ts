@@ -85,10 +85,12 @@ async function deployContract() {
   console.log("TokenVault deployed to:", vault.address);
 
   // Encode the grantRole function call
-  const vaultOwnerRole = tronWeb.sha3("VAULTOWNER_ROLE");
+  /*const vaultOwnerRole = tronWeb.sha3("VAULTOWNER_ROLE");
   await vault
     .grantRole(vaultOwnerRole, multisigWallet.address)
-    .send({ feeLimit: 1000000000 });
+    .send({ feeLimit: 1000000000 });*/
+
+  await vault.transferOwnership(multisigWallet.target);
 
   console.log("VAULTOWNER_ROLE granted to MultiSigWallet");
 
