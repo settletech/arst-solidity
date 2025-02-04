@@ -3,7 +3,6 @@ pragma solidity 0.8.20;
 
 contract MultiSigWallet {
 
-    mapping(address => bool) public isOwner;
     uint256 public numConfirmationsRequired;
     address[] public owners;
     uint256 public activeOwners;
@@ -20,7 +19,9 @@ contract MultiSigWallet {
     Transaction[] public transactions;
     // mapping from tx index => owner => bool
     mapping(uint256 => mapping(address => bool)) public isConfirmed;
-
+    mapping(address => bool) public isOwner;
+    mapping(address => uint256[]) public txOwner;
+    
     event Deposit(address indexed sender, uint256 amount, uint256 balance);
     event SubmitTransaction(
         address indexed owner,
@@ -98,9 +99,12 @@ contract MultiSigWallet {
             data: _data,
             executed: false,
             numConfirmations: 1,
-            deadline: 5 days
+            deadline: block.timestamp + 5 days
         }));
         isConfirmed[txIndex][msg.sender] = true;
+
+        txOwner[msg.sender].push(txIndex);
+
         emit SubmitTransaction(msg.sender, txIndex, _to, _value, _data);
         return txIndex;
     }
@@ -113,7 +117,7 @@ contract MultiSigWallet {
         notConfirmed(_txIndex)
     {
         Transaction storage transaction = transactions[_txIndex];
-        require(transaction.deadline < block.timestamp, "transaction outdated");
+        require(transaction.deadline > block.timestamp, "transaction outdated");
         transaction.numConfirmations += 1;
         isConfirmed[_txIndex][msg.sender] = true;
 
@@ -127,7 +131,7 @@ contract MultiSigWallet {
         notExecuted(_txIndex)
     {
         Transaction storage transaction = transactions[_txIndex];
-        require(transaction.deadline < block.timestamp, "transaction outdated");
+        require(transaction.deadline > block.timestamp, "transaction outdated");
         require(
             transaction.numConfirmations >= numConfirmationsRequired,
             "Not enough confirmations"
@@ -148,7 +152,7 @@ contract MultiSigWallet {
         notExecuted(_txIndex)
     {
         Transaction storage transaction = transactions[_txIndex];
-        require(transaction.deadline < block.timestamp, "transaction outdated");
+        require(transaction.deadline > block.timestamp, "transaction outdated");
         require(isConfirmed[_txIndex][msg.sender], "tx not confirmed");
 
         transaction.numConfirmations -= 1;
@@ -157,7 +161,7 @@ contract MultiSigWallet {
         emit RevokeConfirmation(msg.sender, _txIndex);
     }
 
-    function getOwners() public view returns (address[] memory) {
+    function getActiveOwners() public view returns (address[] memory) {
         return owners;
     }
 
@@ -171,12 +175,47 @@ contract MultiSigWallet {
         owners.push(_owner);
     }
 
+    /*function removeOwner(address _owner) public onlyContract {
+        require(activeOwners > numConfirmationsRequired, "owner cannot be removed");
+        require(isOwner[_owner], "not owner");
+
+        activeOwners--;
+        isOwner[_owner] = false;
+    } */
+
     function removeOwner(address _owner) public onlyContract {
         require(activeOwners > numConfirmationsRequired, "owner cannot be removed");
         require(isOwner[_owner], "not owner");
 
         activeOwners--;
         isOwner[_owner] = false;
+
+        // Get Owners Array Index
+        uint256 ownerIndex;
+        for (uint256 i = 0; i < owners.length;  i++) {
+            if (owners[i] == _owner) {
+                ownerIndex = i;
+                break;
+            }
+        }
+
+        // Owner is deleted from owners array.
+        address temp = owners[owners.length - 1];
+        owners[owners.length - 1] = owners[ownerIndex];
+        owners[ownerIndex] = temp;
+        owners.pop();
+
+        // Get transactions not executed and less than five days.
+        Transaction storage transaction;
+        for (uint256 i = 0; i < txOwner[_owner].length; i++) {
+            transaction = transactions[i];
+            if(transaction.deadline > block.timestamp){
+                if(!transaction.executed) 
+                    transaction.numConfirmations--;
+            } else {
+                break;
+            }
+        }
     }
 
     function changeRequirement(uint256 _numConfirmationsRequired) public onlyContract {
@@ -187,6 +226,10 @@ contract MultiSigWallet {
 
     function getTransactionCount() public view returns (uint256) {
         return transactions.length;
+    }
+
+    function getTxsOwner(address _owner) public view returns(uint256[] memory) {
+        return txOwner[_owner];
     }
 
     function getTransaction(uint256 _txIndex)

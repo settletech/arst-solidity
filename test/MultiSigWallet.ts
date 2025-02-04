@@ -33,7 +33,7 @@ describe("MultiSigWallet", function () {
   });
 
   it("should be deployed with correct owners and requirement", async () => {
-    expect(await wallet.getOwners()).to.deep.equal([owner1.address, owner2.address, owner3.address]);
+    expect(await wallet.getActiveOwners()).to.deep.equal([owner1.address, owner2.address, owner3.address]);
     expect(await wallet.numConfirmationsRequired()).to.be.equal(2);
     expect(await wallet.activeOwners()).to.be.equal(3);
   });
@@ -202,6 +202,101 @@ describe("MultiSigWallet", function () {
     expect(_tx.executed).to.be.equal(true);
     expect(_tx.numConfirmations).to.be.equal(TWO);
 
+  });
+
+  it("should allow removing owners", async function () {
+    const ABI = ["function removeOwner(address _owner)"];
+
+    const valueHex = new ethers.Interface(ABI);
+    const removeOwnerData = valueHex.encodeFunctionData("removeOwner", [owner3.address]);
+
+    await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO, removeOwnerData))
+      .not.to.be.reverted;
+
+    expect(await wallet.isOwner(owner3.address)).to.be.true;
+
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO));
+
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
+
+    expect(await wallet.isOwner(owner3.address)).to.be.false;
+
+    expect(await wallet.activeOwners()).to.be.equal(2);
+
+    const owners = await wallet.getActiveOwners();
+
+    expect(owners.length).to.be.equal(2);
+  });
+
+  it("should allow owner to request to be removed", async function () {
+    const ABI = ["function removeOwner(address _owner)"];
+
+    const valueHex = new ethers.Interface(ABI);
+    const removeOwnerData = valueHex.encodeFunctionData("removeOwner", [owner3.address]);
+
+    // Owner request to be removed
+    await expect(wallet.connect(owner3).submitTransaction(wallet.target, ZERO, removeOwnerData))
+      .not.to.be.reverted;
+
+    expect(await wallet.isOwner(owner3.address)).to.be.true;
+
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO));
+
+    await expect(wallet.connect(owner3).executeTransaction(ZERO)).not.to.be.reverted;
+
+    expect(await wallet.isOwner(owner3.address)).to.be.false;
+
+    expect(await wallet.activeOwners()).to.be.equal(2);
+
+    const owners = await wallet.getActiveOwners();
+
+    expect(owners.length).to.be.equal(2);
+  });
+
+  it("should allow remove an Owner", async function () {
+    const ABIOwner3 = ["function changeRequirement(uint256 _numConfirmationsRequired)"];
+
+    const valueHexOwner3 = new ethers.Interface(ABIOwner3);
+    const requirementDataOwner3 = valueHexOwner3.encodeFunctionData("changeRequirement", [ONE]);
+
+    await wallet.connect(owner3).submitTransaction(wallet.target, ZERO, requirementDataOwner3);
+
+    const txIndex = await wallet.txOwner(owner3.address, 0);
+    expect(txIndex).to.be.equal(ZERO);
+
+    const allTxOwner = await wallet.getTxsOwner(owner3.address);
+    expect(allTxOwner.length).to.be.equal(ONE);
+
+    const txBefore = await wallet.getTransaction(ZERO);
+    expect(txBefore.numConfirmations).to.be.equal(ONE);
+
+    // Removing owner3
+    const ABI = ["function removeOwner(address _owner)"];
+    const valueHex = new ethers.Interface(ABI);
+    const removeOwnerData = valueHex.encodeFunctionData("removeOwner", [owner3.address]);
+
+    await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO, removeOwnerData))
+      .not.to.be.reverted;
+
+    expect(await wallet.isOwner(owner3.address)).to.be.true;
+
+    await expect(wallet.connect(owner2).confirmTransaction(ONE));
+    await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
+
+    expect(await wallet.isOwner(owner3.address)).to.be.false;
+    expect(await wallet.activeOwners()).to.be.equal(2);
+
+    const owners = await wallet.getActiveOwners();
+    expect(owners.length).to.be.equal(2);
+
+    const txIndexAfter = await wallet.txOwner(owner3.address, 0);
+    expect(txIndexAfter).to.be.equal(ZERO);
+
+    const allTxOwnerAfter = await wallet.getTxsOwner(owner3.address);
+    expect(allTxOwnerAfter.length).to.be.equal(ONE);
+
+    const txAfter = await wallet.getTransaction(ZERO);
+    expect(txAfter.numConfirmations).to.be.equal(ZERO);
   });
 
 });
