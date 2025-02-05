@@ -206,14 +206,17 @@ contract MultiSigWallet {
         owners.pop();
 
         // Get transactions not executed and less than five days.
-        Transaction storage transaction;
-        for (uint256 i = 0; i < txOwner[_owner].length; i++) {
-            transaction = transactions[i];
-            if(transaction.deadline > block.timestamp){
-                if(!transaction.executed) 
-                    transaction.numConfirmations--;
-            } else {
-                break;
+        uint256  txSize = txOwner[_owner].length;
+        if(txSize > 0){
+            Transaction storage transaction;
+            for (uint256 i = txSize; i > 0; i--){
+                transaction = transactions[txOwner[_owner][i-1]];
+                if(transaction.deadline > block.timestamp){
+                    if(!transaction.executed) 
+                        transaction.numConfirmations--;
+                } else {
+                    break;
+                }
             }
         }
     }

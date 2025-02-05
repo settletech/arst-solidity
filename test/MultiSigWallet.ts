@@ -11,6 +11,7 @@ const VAULT_OWNER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULT_OWNER_ROLE")
 const VAULT_TRANSFER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VAULT_TRANSFER_ROLE"));
 const DEFAULT_ADMIN_ROLE = ethers.keccak256(ethers.toUtf8Bytes("DEFAULT_ADMIN_ROLE"));
 
+const FIVE_DAYS = 60 * 60 * 24 * 5;
 const ZERO_ETHER = ethers.parseEther("0");
 const ONE_ETHER = ethers.parseEther("1");
 const TWO_ETHER = ethers.parseEther("2");
@@ -18,6 +19,7 @@ const TEN_ETHER = ethers.parseEther("10");
 const ZERO = 0;
 const ONE = 1;
 const TWO = 2;
+const THREE = 3;
 
 describe("MultiSigWallet", function () {
   
@@ -72,8 +74,7 @@ describe("MultiSigWallet", function () {
       
   }); 
 
-  it("should prevent a non-owner from confirming a tx", async function () {
- 
+  it("should prevent a non-owner from confirming a tx", async function () { 
     await wallet.connect(owner1).submitTransaction(wallet.target, ONE_ETHER, "0x");
     await expect(wallet.connect(notOwner).confirmTransaction(ZERO)).to.be.revertedWith("not owner");
 
@@ -123,9 +124,24 @@ describe("MultiSigWallet", function () {
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).to.be.revertedWith("Not enough confirmations"); 
   });
 
+  it("should prevent confirmation if tx has expired", async function () {
+    await expect(wallet.connect(owner1).submitTransaction(owner3.address, ONE_ETHER, "0x")).not.to.be.reverted;
+    
+    await ethers.provider.send("evm_increaseTime", [FIVE_DAYS])
+    
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO)).to.be.revertedWith("transaction outdated")
+  });
+
+  it("should prevent execution if tx has expired", async function () {
+    await expect(wallet.connect(owner1).submitTransaction(owner3.address, ONE_ETHER, "0x")).not.to.be.reverted; 
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO)).not.to.be.reverted;
+    
+    await ethers.provider.send("evm_increaseTime", [FIVE_DAYS]);
+    
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).to.be.revertedWith("transaction outdated"); 
+  });
 
   it("should allow an owner to revoke a confirmation", async function () {
-
     await wallet.connect(owner1).submitTransaction(owner3.address, ONE_ETHER, "0x");
   
     // Confirm the transaction with owner2
@@ -193,7 +209,8 @@ describe("MultiSigWallet", function () {
     expect(_tx.executed).to.be.equal(false);
     expect(_tx.numConfirmations).to.be.equal(TWO);
 
-    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
+    await expect(wallet.connect(owner1).executeTransaction(ZERO))
+      .not.to.be.reverted;
 
     _tx = await wallet.getTransaction(ZERO);
     expect(_tx.to).to.be.equal(owner3.address);
@@ -215,7 +232,7 @@ describe("MultiSigWallet", function () {
 
     expect(await wallet.isOwner(owner3.address)).to.be.true;
 
-    await expect(wallet.connect(owner2).confirmTransaction(ZERO));
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO)).not.to.be.reverted;
 
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
 
@@ -240,7 +257,7 @@ describe("MultiSigWallet", function () {
 
     expect(await wallet.isOwner(owner3.address)).to.be.true;
 
-    await expect(wallet.connect(owner2).confirmTransaction(ZERO));
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO)).not.to.be.reverted;
 
     await expect(wallet.connect(owner3).executeTransaction(ZERO)).not.to.be.reverted;
 
@@ -254,13 +271,14 @@ describe("MultiSigWallet", function () {
   });
 
   it("should allow remove an Owner", async function () {
+    // Owner3 submits a transaction
     const ABIOwner3 = ["function changeRequirement(uint256 _numConfirmationsRequired)"];
-
     const valueHexOwner3 = new ethers.Interface(ABIOwner3);
     const requirementDataOwner3 = valueHexOwner3.encodeFunctionData("changeRequirement", [ONE]);
 
     await wallet.connect(owner3).submitTransaction(wallet.target, ZERO, requirementDataOwner3);
 
+    // Validate that the transaction has been submitted 
     const txIndex = await wallet.txOwner(owner3.address, 0);
     expect(txIndex).to.be.equal(ZERO);
 
@@ -280,12 +298,13 @@ describe("MultiSigWallet", function () {
 
     expect(await wallet.isOwner(owner3.address)).to.be.true;
 
-    await expect(wallet.connect(owner2).confirmTransaction(ONE));
+    await expect(wallet.connect(owner2).confirmTransaction(ONE)).not.to.be.reverted;
     await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
 
     expect(await wallet.isOwner(owner3.address)).to.be.false;
     expect(await wallet.activeOwners()).to.be.equal(2);
 
+    // Validate removed tx values. 
     const owners = await wallet.getActiveOwners();
     expect(owners.length).to.be.equal(2);
 
@@ -297,6 +316,108 @@ describe("MultiSigWallet", function () {
 
     const txAfter = await wallet.getTransaction(ZERO);
     expect(txAfter.numConfirmations).to.be.equal(ZERO);
+  });
+
+  // *****************************
+  it("should allow remove several tx from a removed Owner", async function () {
+    // Owner3 submits a transaction
+    const ABIOwner3 = ["function changeRequirement(uint256 _numConfirmationsRequired)"];
+    const valueHexOwner3 = new ethers.Interface(ABIOwner3);
+    const requirementDataOwner3 = valueHexOwner3.encodeFunctionData("changeRequirement", [ONE]);
+
+    await wallet.connect(owner3).submitTransaction(wallet.target, ZERO, requirementDataOwner3);
+    await wallet.connect(owner3).submitTransaction(wallet.target, ZERO, requirementDataOwner3);
+    await wallet.connect(owner3).submitTransaction(wallet.target, ZERO, requirementDataOwner3);
+
+    const txBefore1 = await wallet.getTransaction(ZERO);
+    expect(txBefore1.numConfirmations).to.be.equal(ONE);
+
+    const txBefore2 = await wallet.getTransaction(ONE);
+    expect(txBefore2.numConfirmations).to.be.equal(ONE);
+
+    const txBefore3 = await wallet.getTransaction(TWO);
+    expect(txBefore3.numConfirmations).to.be.equal(ONE);
+
+    // Validate that the transaction has been submitted 
+    const allTxOwner = await wallet.getTxsOwner(owner3.address);
+    expect(allTxOwner.length).to.be.equal(THREE);
+
+    // Removing owner3
+    const ABI = ["function removeOwner(address _owner)"];
+    const valueHex = new ethers.Interface(ABI);
+    const removeOwnerData = valueHex.encodeFunctionData("removeOwner", [owner3.address]);
+
+    await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO, removeOwnerData))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner2).confirmTransaction(THREE)).not.to.be.reverted;
+    await expect(wallet.connect(owner1).executeTransaction(THREE)).not.to.be.reverted;
+
+    expect(await wallet.isOwner(owner3.address)).to.be.false;
+    
+    // Validate removed tx values. 
+    const owners = await wallet.getActiveOwners();
+    expect(owners.length).to.be.equal(2);
+
+    const allTxOwnerAfter = await wallet.getTxsOwner(owner3.address);
+    expect(allTxOwnerAfter.length).to.be.equal(THREE);
+
+    const txAfter1 = await wallet.getTransaction(ZERO);
+    expect(txAfter1.numConfirmations).to.be.equal(ZERO);
+
+    const txAfter2 = await wallet.getTransaction(ONE);
+    expect(txAfter2.numConfirmations).to.be.equal(ZERO);
+
+    const txAfter3 = await wallet.getTransaction(TWO);
+    expect(txAfter3.numConfirmations).to.be.equal(ZERO);
+  });
+
+  it("should allow remove tx after valid Tx", async function () {
+    // Owner3 submits a transaction
+    const ABIOwner3 = ["function changeRequirement(uint256 _numConfirmationsRequired)"];
+    const valueHexOwner3 = new ethers.Interface(ABIOwner3);
+    const requirementDataOwner3 = valueHexOwner3.encodeFunctionData("changeRequirement", [ONE]);
+
+    await wallet.connect(owner3).submitTransaction(wallet.target, ZERO, requirementDataOwner3);
+
+    // Removing owner3
+    const ABI = ["function removeOwner(address _owner)"];
+    const valueHex = new ethers.Interface(ABI);
+    const removeOwnerData = valueHex.encodeFunctionData("removeOwner", [owner3.address]);
+
+    await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO, removeOwnerData))
+      .not.to.be.reverted;
+
+    await wallet.connect(owner3).submitTransaction(wallet.target, ZERO, requirementDataOwner3);
+    
+
+    const txBefore1 = await wallet.getTransaction(ZERO);
+    expect(txBefore1.numConfirmations).to.be.equal(ONE);
+
+    const txBefore2 = await wallet.getTransaction(TWO);
+    expect(txBefore2.numConfirmations).to.be.equal(ONE);
+
+    // Validate that the transaction has been submitted 
+    const allTxOwner = await wallet.getTxsOwner(owner3.address);
+    expect(allTxOwner.length).to.be.equal(TWO);
+
+    await expect(wallet.connect(owner2).confirmTransaction(ONE)).not.to.be.reverted;
+    await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
+
+    expect(await wallet.isOwner(owner3.address)).to.be.false;
+    
+    // Validate removed tx values. 
+    const owners = await wallet.getActiveOwners();
+    expect(owners.length).to.be.equal(2);
+
+    const allTxOwnerAfter = await wallet.getTxsOwner(owner3.address);
+    expect(allTxOwnerAfter.length).to.be.equal(TWO);
+
+    const txAfter1 = await wallet.getTransaction(ZERO);
+    expect(txAfter1.numConfirmations).to.be.equal(ZERO);
+
+    const txAfter2 = await wallet.getTransaction(TWO);
+    expect(txAfter2.numConfirmations).to.be.equal(ZERO);
   });
 
 });
@@ -351,7 +472,8 @@ describe("STT Token Minting", function () {
     await expect(wallet.connect(owner2).confirmTransaction(ZERO))
       .not.to.be.reverted;
 
-    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
+    await expect(wallet.connect(owner1).executeTransaction(ZERO))
+      .not.to.be.reverted;
 
     expect(await wallet.isOwner(notOwner.address)).to.be.true;
   });
@@ -367,7 +489,7 @@ describe("STT Token Minting", function () {
 
     expect(await wallet.isOwner(owner3.address)).to.be.true;
 
-    await expect(wallet.connect(owner2).confirmTransaction(ZERO));
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO)).not.to.be.reverted;
 
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
 
@@ -443,8 +565,6 @@ describe("Vaul Testing", function () {
     vault = await VaultFactory.deploy(token.target, wallet.target) as TokenVault;
     await vault.waitForDeployment();
 
-    //await vault.transferOwnership(wallet.target);
-
     ownerRole = await vault.VAULT_OWNER_ROLE();
     transferRole = await vault.VAULT_TRANSFER_ROLE();
     adminRole = await vault.DEFAULT_ADMIN_ROLE();
@@ -463,17 +583,9 @@ describe("Vaul Testing", function () {
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
   });
 
-  /*it("should verify multisig as vault owner", async () => {
-    expect(await vault.owner()).to.be.equal(wallet.target);
-  }); */
-
   it("should validate the vault owner role", async () => {
     expect(await vault.hasRole(ownerRole, wallet.target)).to.be.true;
   });
-
-  /*it("should validate the default admin role", async () => {
-    expect(await vault.hasRole(adminRole, wallet.target)).to.be.true;
-  }); */
 
   it("should validate the token address admin role", async () => {
     expect(await vault.token()).to.be.equal(token.target);
