@@ -5,7 +5,7 @@ contract MultiSigWallet {
 
     uint256 public numConfirmationsRequired;
     address[] public owners;
-    uint256 public activeOwners;
+    //uint256 public activeOwners;
 
     struct Transaction {
         address to;
@@ -78,7 +78,7 @@ contract MultiSigWallet {
             owners.push(owner);
         }
 
-        activeOwners = _owners.length;
+        //activeOwners = _owners.length;
         numConfirmationsRequired = _numConfirmationsRequired;
     }
 
@@ -171,7 +171,7 @@ contract MultiSigWallet {
         require(!isOwner[_owner], "owner not unique");
 
         isOwner[_owner] = true;
-        activeOwners++;
+        //activeOwners++;
         owners.push(_owner);
     }
 
@@ -184,10 +184,10 @@ contract MultiSigWallet {
     } */
 
     function removeOwner(address _owner) public onlyContract {
-        require(activeOwners > numConfirmationsRequired, "owner cannot be removed");
+        require(owners.length > numConfirmationsRequired, "owner cannot be removed");
         require(isOwner[_owner], "not owner");
 
-        activeOwners--;
+        //activeOwners--;
         isOwner[_owner] = false;
 
         // Get Owners Array Index
@@ -200,9 +200,9 @@ contract MultiSigWallet {
         }
 
         // Owner is deleted from owners array.
-        address temp = owners[owners.length - 1];
-        owners[owners.length - 1] = owners[ownerIndex];
-        owners[ownerIndex] = temp;
+        // address temp = owners[owners.length - 1];
+        //owners[owners.length - 1] = owners[ownerIndex];
+        owners[ownerIndex] = owners[owners.length - 1];
         owners.pop();
 
         // Get transactions not executed and less than five days.

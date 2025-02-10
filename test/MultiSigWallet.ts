@@ -37,7 +37,7 @@ describe("MultiSigWallet", function () {
   it("should be deployed with correct owners and requirement", async () => {
     expect(await wallet.getActiveOwners()).to.deep.equal([owner1.address, owner2.address, owner3.address]);
     expect(await wallet.numConfirmationsRequired()).to.be.equal(2);
-    expect(await wallet.activeOwners()).to.be.equal(3);
+    expect((await wallet.getActiveOwners()).length).to.be.equal(3);
   });
   
   it("should allow an owner to submit a tx", async () => {
@@ -238,11 +238,8 @@ describe("MultiSigWallet", function () {
 
     expect(await wallet.isOwner(owner3.address)).to.be.false;
 
-    expect(await wallet.activeOwners()).to.be.equal(2);
+    expect((await wallet.getActiveOwners()).length).to.be.equal(2);
 
-    const owners = await wallet.getActiveOwners();
-
-    expect(owners.length).to.be.equal(2);
   });
 
   it("should allow owner to request to be removed", async function () {
@@ -262,8 +259,6 @@ describe("MultiSigWallet", function () {
     await expect(wallet.connect(owner3).executeTransaction(ZERO)).not.to.be.reverted;
 
     expect(await wallet.isOwner(owner3.address)).to.be.false;
-
-    expect(await wallet.activeOwners()).to.be.equal(2);
 
     const owners = await wallet.getActiveOwners();
 
@@ -302,7 +297,7 @@ describe("MultiSigWallet", function () {
     await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
 
     expect(await wallet.isOwner(owner3.address)).to.be.false;
-    expect(await wallet.activeOwners()).to.be.equal(2);
+    expect((await wallet.getActiveOwners()).length).to.be.equal(2);
 
     // Validate removed tx values. 
     const owners = await wallet.getActiveOwners();
@@ -505,11 +500,11 @@ describe("STT Token Minting", function () {
     await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO, removeOwnerData))
       .not.to.be.reverted;
 
-    expect(await wallet.activeOwners()).to.be.equal(3);
+    expect((await wallet.getActiveOwners()).length).to.be.equal(3);
     await expect(wallet.connect(owner2).confirmTransaction(ZERO));
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
     
-    expect(await wallet.activeOwners()).to.be.equal(2);
+    expect((await wallet.getActiveOwners()).length).to.be.equal(2);
     const removeOwnerData2 = valueHex.encodeFunctionData("removeOwner", [owner2.address]);
     await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO_ETHER, removeOwnerData2))
       .not.to.be.reverted;
@@ -520,7 +515,7 @@ describe("STT Token Minting", function () {
       .to.be.revertedWith("tx failed");
       
 
-    expect(await wallet.activeOwners()).to.be.equal(2);
+    expect((await wallet.getActiveOwners()).length).to.be.equal(2);
     expect(await wallet.isOwner(owner2.address)).to.be.true;
   });
 
