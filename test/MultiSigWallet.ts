@@ -501,7 +501,7 @@ describe("STT Token Minting", function () {
       .not.to.be.reverted;
 
     expect((await wallet.getActiveOwners()).length).to.be.equal(3);
-    await expect(wallet.connect(owner2).confirmTransaction(ZERO));
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO)).not.to.be.reverted;
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
     
     expect((await wallet.getActiveOwners()).length).to.be.equal(2);
@@ -509,7 +509,7 @@ describe("STT Token Minting", function () {
     await expect(wallet.connect(owner1).submitTransaction(wallet.target, ZERO_ETHER, removeOwnerData2))
       .not.to.be.reverted;
 
-    await expect(wallet.connect(owner2).confirmTransaction(ONE));
+    await expect(wallet.connect(owner2).confirmTransaction(ONE)).not.to.be.reverted;
 
     await expect(wallet.connect(owner1).executeTransaction(ONE))
       .to.be.revertedWith("tx failed");
@@ -534,10 +534,37 @@ describe("STT Token Minting", function () {
 
     expect(await token.balanceOf(owner3.address)).to.be.equal(TEN_ETHER);
   });
+
+  it("should burn tokens", async () => {
+    const ABI = ["function mint(address to, uint256 amount)"];
+
+    const valueHex = new ethers.Interface(ABI);
+    const mintData = valueHex.encodeFunctionData("mint", [owner3.address,TEN_ETHER]);
+
+    await wallet.connect(owner1).submitTransaction(token.target, ZERO, mintData);
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO)).not.to.be.reverted;
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
+
+    await expect(token.connect(owner3).transfer(wallet.target, ONE_ETHER)).not.to.be.reverted;
+
+    // Burn tokens
+    const ABI2 = ["function burn(uint256 _amount)"];
+
+    const valueHex2 = new ethers.Interface(ABI2);
+    const burnData = valueHex2.encodeFunctionData("burn", [ONE_ETHER]);
+
+    expect(await token.balanceOf(wallet.target)).to.be.equal(ONE_ETHER);
+    await wallet.connect(owner1).submitTransaction(token.target, ZERO, burnData);
+
+    // Execute second transaction
+    await expect(wallet.connect(owner2).confirmTransaction(ONE)).not.to.be.reverted;
+    await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
+    expect(await token.balanceOf(wallet.target)).to.be.equal(ZERO_ETHER);
+  });
   
 });
 
-describe("Vaul Testing", function () {
+describe("Vault Testing", function () {
 
   let ownerRole: any;
   let adminRole: any;
@@ -572,8 +599,7 @@ describe("Vaul Testing", function () {
 
     await wallet.connect(owner1).submitTransaction(token.target, ZERO, mintData);
 
-    await expect(wallet.connect(owner2).confirmTransaction(ZERO))
-      .not.to.be.reverted;
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO)).not.to.be.reverted;
 
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
   });

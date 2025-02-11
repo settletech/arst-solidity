@@ -41,8 +41,8 @@ describe("StableToken", function () {
   });
 
   it("Should revert if trying to burn more tokens than the balance", async function () {
-    await token.mint(user1.address, 1000);
-    await expect(token.connect(user1).burn(1500)).to.be.reverted;
+    await token.mint(owner.address, 1000);
+    await expect(token.burn(1500)).to.be.reverted;
   });
 
   it("Should revert if trying to transfer ownership to the zero address", async function () {
@@ -59,9 +59,16 @@ describe("StableToken", function () {
   });
 
   it("Should allow burning", async function () {
-    await token.mint(user1.address, 1000);
-    await token.connect(user1).burn(500);
-    expect(await token.balanceOf(user1.address)).to.equal(500);
+    await expect(token.mint(owner.address, 1000)).not.to.be.reverted;
+    await expect(token.connect(owner).burn(500))
+      .not.to.be.reverted;
+    expect(await token.balanceOf(owner.address)).to.equal(500);
+  });
+
+  it("Should not allow burning if not owner", async function () {
+    await expect(token.mint(owner.address, 1000)).not.to.be.reverted;
+    await expect(token.connect(user1).burn(500))
+      .to.be.revertedWithCustomError(token, "OwnableUnauthorizedAccount");
   });
 
   it("Should allow pausing and unpausing", async function () {

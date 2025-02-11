@@ -2,13 +2,13 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-//import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
+// import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+// import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
-contract StableToken is ERC20, ERC20Burnable, Ownable, Pausable, ERC20Permit {
+contract StableToken is ERC20, Ownable, Pausable, ERC20Permit {
 
     constructor()
         ERC20("StableToken", "STT") 
@@ -45,10 +45,11 @@ contract StableToken is ERC20, ERC20Burnable, Ownable, Pausable, ERC20Permit {
         super._mint(to, amount);
     }
 
-    /*function burn(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: burn from the zero address");
-        super._burn(account, amount); 
-    } */
+    // Only called by settle even if paused.
+    function burn(uint256 _amount) public onlyOwner {
+        require(_amount > 0, "amount should be greater than zero");
+        super._burn(msg.sender, _amount);
+    }
 
     function pause() public onlyOwner {
         _pause();
