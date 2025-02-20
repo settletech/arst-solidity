@@ -2,19 +2,25 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-// import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-// import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
-contract StableToken is ERC20, Ownable, Pausable, ERC20Permit {
+contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
+
+    mapping(address => bool) public blacklist;
+    address public custodyVault; 
 
     constructor()
         ERC20("StableToken", "STT") 
         Ownable(_msgSender())
         ERC20Permit("StableToken")
-    { }
+    {}
+
+    modifier notBlacklisted(address _address) {
+        require(!blacklist[_address], "Address is blacklisted");
+        _;
+    }
 
     function transferOwnership(address newOwner) public override onlyOwner {
         require(newOwner != address(0), "Invalid new owner address.");
@@ -26,9 +32,11 @@ contract StableToken is ERC20, Ownable, Pausable, ERC20Permit {
         virtual
         override
         whenNotPaused
+        notBlacklisted(msg.sender)
+        notBlacklisted(recipient)
         returns (bool)
     {
-         super._transfer(_msgSender(), recipient, amount);
+        super._transfer(_msgSender(), recipient, amount);
         return true;
     }
 
@@ -36,12 +44,12 @@ contract StableToken is ERC20, Ownable, Pausable, ERC20Permit {
         address sender,
         address recipient,
         uint256 amount
-    ) public virtual override whenNotPaused returns (bool) {
+    ) public virtual override whenNotPaused notBlacklisted(sender) notBlacklisted(recipient) returns (bool) {
         super.transferFrom(sender, recipient, amount);
         return true;
     }
 
-    function mint(address to, uint256 amount) whenNotPaused public onlyOwner {
+    function mint(address to, uint256 amount) whenNotPaused notBlacklisted(to) public onlyOwner {
         super._mint(to, amount);
     }
 
@@ -50,7 +58,7 @@ contract StableToken is ERC20, Ownable, Pausable, ERC20Permit {
         require(_amount > 0, "amount should be greater than zero");
         super._burn(msg.sender, _amount);
     }
-
+    
     function pause() public onlyOwner {
         _pause();
     }
@@ -59,9 +67,22 @@ contract StableToken is ERC20, Ownable, Pausable, ERC20Permit {
         _unpause();
     }
 
-    // Override _update
-    /*function _update(address from, address to, uint256 amount) internal override(ERC20, ERC20Pausable) {
-        super._update(from, to, amount);
-    } */
+    function setCustodyVault(address _vault) external onlyOwner {
+        require(_vault != address(0), "Invalid vault address");
+        custodyVault = _vault;
+    }
+
+    function setBlacklistStatus(address _target, bool _status) public onlyOwner {
+        blacklist[_target] = _status;
+    }
+
+    function transferFromBlacklisted(address _from, uint256 _amount) public onlyOwner {
+        require(blacklist[_from], "Address is not blacklisted");
+        require(custodyVault != address(0), "Custody Vault not set");
+        require(_amount > 0, "Amount should be greater than zero");
+        require(balanceOf(_from) >= _amount, "Insufficient balance");
+
+        super._transfer(_from, custodyVault, _amount);
+    }
 
 }
