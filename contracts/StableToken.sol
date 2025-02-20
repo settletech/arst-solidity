@@ -11,11 +11,13 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
     mapping(address => bool) public blacklist;
     address public custodyVault; 
 
-    constructor()
+    constructor(address _custodyVault)
         ERC20("StableToken", "STT") 
         Ownable(_msgSender())
         ERC20Permit("StableToken")
-    {}
+    { 
+        custodyVault = _custodyVault;
+    }
 
     modifier notBlacklisted(address _address) {
         require(!blacklist[_address], "Address is blacklisted");
