@@ -3961,7 +3961,7 @@ contract StableToken is ERC20, ERC20Burnable, ERC20Pausable, Ownable, ERC20Permi
     { }
 
     function transferOwnership(address newOwner) public override onlyOwner {
-        require(newOwner != address(0), "Invalid new owner address.");
+        require(newOwner != address(0), "Invalid new owner address");
         _transferOwnership(newOwner);
     }
 

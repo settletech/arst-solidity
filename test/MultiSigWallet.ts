@@ -15,6 +15,7 @@ const FIVE_DAYS = 60 * 60 * 24 * 5;
 const ZERO_ETHER = ethers.parseEther("0");
 const ONE_ETHER = ethers.parseEther("1");
 const TWO_ETHER = ethers.parseEther("2");
+const NINE_ETHER = ethers.parseEther("9");
 const TEN_ETHER = ethers.parseEther("10");
 const ZERO = 0;
 const ONE = 1;
@@ -556,7 +557,7 @@ describe("STT Token Minting", function () {
     await wallet.waitForDeployment();
 
     const TokenFactory = await ethers.getContractFactory("StableToken");
-    token = await TokenFactory.deploy() as StableToken;
+    token = await TokenFactory.deploy(wallet.target) as StableToken;
     await token.waitForDeployment();
 
     await token.transferOwnership(wallet.target);
@@ -704,15 +705,17 @@ describe("Vault Testing", function () {
     wallet = await WalletFactory.deploy([owner1.address, owner2.address, owner3.address], 2) as MultiSigWallet;
     await wallet.waitForDeployment();
 
+    const VaultFactory = await ethers.getContractFactory("TokenVault");
+    vault = await VaultFactory.deploy(wallet.target) as TokenVault;
+    await vault.waitForDeployment();
+
     const TokenFactory = await ethers.getContractFactory("StableToken");
-    token = await TokenFactory.deploy() as StableToken;
+    token = await TokenFactory.deploy(vault.target) as StableToken;
     await token.waitForDeployment();
 
     await token.transferOwnership(wallet.target);
 
-    const VaultFactory = await ethers.getContractFactory("TokenVault");
-    vault = await VaultFactory.deploy(token.target, wallet.target) as TokenVault;
-    await vault.waitForDeployment();
+    
 
     ownerRole = await vault.VAULT_OWNER_ROLE();
     transferRole = await vault.VAULT_TRANSFER_ROLE();
@@ -735,30 +738,26 @@ describe("Vault Testing", function () {
     expect(await vault.hasRole(ownerRole, wallet.target)).to.be.true;
   });
 
-  it("should validate the token address admin role", async () => {
-    expect(await vault.token()).to.be.equal(token.target);
-  });
-  
   it("should validate vault balance ", async () => {
     expect(await token.balanceOf(vault.target)).to.be.equal(TEN_ETHER);
 
-    expect(await vault.getBalance()).to.be.equal(TEN_ETHER);
+    expect(await vault.getBalance(token.target)).to.be.equal(TEN_ETHER);
   });
 
   it("should validate only vault owner can transfer", async () => {
-    await expect(vault.connect(owner2).transfer(owner2.address, ONE_ETHER))
+    await expect(vault.connect(owner2).transfer(token.target, owner2.address, ONE_ETHER))
       .to.be.revertedWithCustomError(vault, "AccessControlUnauthorizedAccount")
       .withArgs(owner2.address, transferRole);
   });
 
   it("should validate transfer receipient", async () => {
-    await expect(vault.transfer(ADDRESS_ZERO, ONE_ETHER))
+    await expect(vault.transfer(token.target, ADDRESS_ZERO, ONE_ETHER))
       .to.be.revertedWithCustomError(token, "ERC20InvalidReceiver")
       .withArgs(ADDRESS_ZERO);
   });
 
   it("should validate that vault owner can transfer", async () => {
-    await expect(vault.transfer(owner2.address, ONE_ETHER))
+    await expect(vault.transfer(token.target, owner2.address, ONE_ETHER))
       .to.emit(vault, "Transfer")
       .withArgs(owner2.address, ONE_ETHER);
 
@@ -825,11 +824,124 @@ describe("Vault Testing", function () {
 
     await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
 
-    await expect(vault.connect(owner2).transfer(owner3.address, ONE_ETHER))
+    await expect(vault.connect(owner2).transfer(token.target, owner3.address, ONE_ETHER))
       .to.emit(vault, "Transfer")
       .withArgs(owner3.address, ONE_ETHER);
 
     expect(await token.balanceOf(owner3.address)).to.be.equal(ONE_ETHER);
   });
   
+});
+
+describe("Token blacklist functionality", function () {
+
+  let ownerRole: any;
+  let adminRole: any;
+  let transferRole: any;
+
+  beforeEach(async function () {
+    [owner1, owner2, owner3, owner4, notOwner] = await ethers.getSigners();
+
+    const WalletFactory = await ethers.getContractFactory("MultiSigWallet");
+    wallet = await WalletFactory.deploy([owner1.address, owner2.address, owner3.address], 2) as MultiSigWallet;
+    await wallet.waitForDeployment();
+
+    const VaultFactory = await ethers.getContractFactory("TokenVault");
+    vault = await VaultFactory.deploy(wallet.target) as TokenVault;
+    await vault.waitForDeployment();
+
+    const TokenFactory = await ethers.getContractFactory("StableToken");
+    token = await TokenFactory.deploy(vault.target) as StableToken;
+    await token.waitForDeployment();
+
+    await token.transferOwnership(wallet.target);
+
+    ownerRole = await vault.VAULT_OWNER_ROLE();
+    transferRole = await vault.VAULT_TRANSFER_ROLE();
+    adminRole = await vault.DEFAULT_ADMIN_ROLE();
+
+    // Transfer tokens to the vault
+    const ABI = ["function mint(address to, uint256 amount)"];
+
+    const valueHex = new ethers.Interface(ABI);
+    const mintData = valueHex.encodeFunctionData("mint", [vault.target, TEN_ETHER]);
+
+    await wallet.connect(owner1).submitTransaction(token.target, ZERO, mintData);
+
+    await expect(wallet.connect(owner2).confirmTransaction(ZERO)).not.to.be.reverted;
+
+    await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
+  });
+
+  it("should allow to blacklist an address", async () => {
+    const ABI = ["function setBlacklistStatus(address _target,bool _status)"];
+    const valueHex = new ethers.Interface(ABI);
+    const encodeData = valueHex.encodeFunctionData("setBlacklistStatus", [notOwner.address, true]);
+
+    expect(await token.blacklist(notOwner.address)).to.be.equal(false);
+
+    await wallet.connect(owner1).submitTransaction(token.target, ZERO_ETHER, encodeData);
+
+    await expect(wallet.connect(owner2).confirmTransaction(ONE))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
+
+    expect(await token.blacklist(notOwner.address)).to.be.equal(true);
+  });
+
+  it("should allow to remove funds from a blacklisted address", async () => {
+    const ABI = ["function setBlacklistStatus(address _target,bool _status)"];
+    const valueHex = new ethers.Interface(ABI);
+    const encodeData = valueHex.encodeFunctionData("setBlacklistStatus", [notOwner.address, true]);
+
+    await expect(vault.transfer(token.target, notOwner.address, ONE_ETHER))
+      .not.to.be.reverted;
+
+    expect(await token.balanceOf(notOwner.address)).to.be.equal(ONE_ETHER);
+
+    // Blacklist address
+    await wallet.connect(owner1).submitTransaction(token.target, ZERO_ETHER, encodeData);
+
+    await expect(wallet.connect(owner2).confirmTransaction(ONE))
+      .not.to.be.reverted;
+
+    await expect(wallet.connect(owner1).executeTransaction(ONE)).not.to.be.reverted;
+
+    // Remove funds
+    const ABI2 = ["function transferFromBlacklisted(address _from, uint256 _amount)"];
+    const valueHex2 = new ethers.Interface(ABI2);
+    const removeFundsData = valueHex2.encodeFunctionData(
+      "transferFromBlacklisted", [notOwner.address, ONE_ETHER]
+    );
+
+    expect(await vault.getBalance(token.target)).to.be.equal(NINE_ETHER);
+
+    await wallet.connect(owner1).submitTransaction(token.target, ZERO_ETHER, removeFundsData);
+    await expect(wallet.connect(owner2).confirmTransaction(TWO))
+      .not.to.be.reverted;
+    await expect(wallet.connect(owner1).executeTransaction(TWO)).not.to.be.reverted;
+
+    expect(await token.balanceOf(notOwner.address)).to.be.equal(ZERO_ETHER);
+    expect(await vault.getBalance(token.target)).to.be.equal(TEN_ETHER);
+
+    // Burning Tokens
+    await expect(vault.transfer(token.target, wallet.target, ONE_ETHER)).not.to.be.reverted;
+
+    // Burn tokens
+    const ABI3 = ["function burn(uint256 _amount)"];
+    const valueHex3 = new ethers.Interface(ABI3);
+    const burnData = valueHex3.encodeFunctionData("burn", [ONE_ETHER]);
+
+    expect(await token.balanceOf(wallet.target)).to.be.equal(ONE_ETHER);
+    await wallet.connect(owner1).submitTransaction(token.target, ZERO, burnData);
+
+    // Execute third transaction
+    await expect(wallet.connect(owner2).confirmTransaction(THREE)).not.to.be.reverted;
+    await expect(wallet.connect(owner1).executeTransaction(THREE)).not.to.be.reverted;
+
+    expect(await token.balanceOf(wallet.target)).to.be.equal(ZERO_ETHER);
+    expect(await token.totalSupply()).to.be.equal(NINE_ETHER);
+  });
+
 });
