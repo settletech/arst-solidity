@@ -6,6 +6,7 @@ contract MultiSigWallet {
     uint256 public numConfirmationsRequired;
     address[] public owners;
     //uint256 public activeOwners;
+    mapping(address => bool) public blacklist;
 
     struct Transaction {
         address to;
@@ -57,6 +58,11 @@ contract MultiSigWallet {
 
     modifier notConfirmed(uint256 _txIndex) {
         require(!isConfirmed[_txIndex][msg.sender], "tx already confirmed");
+        _;
+    }
+
+    modifier notBlacklisted(address _address) {
+        require(!blacklist[_address], "Address is blacklisted");
         _;
     }
 
@@ -166,7 +172,7 @@ contract MultiSigWallet {
     }
 
     // Functions for owner management
-    function addOwner(address _owner) public onlyContract { 
+    function addOwner(address _owner) notBlacklisted(_owner) public onlyContract { 
         require(_owner != address(0), "invalid owner");
         require(!isOwner[_owner], "owner not unique");
 
@@ -221,6 +227,8 @@ contract MultiSigWallet {
                 }
             }
         //}
+
+        blacklist[_owner] = true;
     }
 
     function changeRequirement(uint256 _numConfirmationsRequired) public onlyContract {
