@@ -2,6 +2,100 @@
 pragma solidity 0.8.20;
 
 /**
+ * @dev External interface of AccessControl declared to support ERC-165 detection.
+ */
+interface IAccessControl {
+    /**
+     * @dev The `account` is missing a role.
+     */
+    error AccessControlUnauthorizedAccount(address account, bytes32 neededRole);
+
+    /**
+     * @dev The caller of a function is not the expected one.
+     *
+     * NOTE: Don't confuse with {AccessControlUnauthorizedAccount}.
+     */
+    error AccessControlBadConfirmation();
+
+    /**
+     * @dev Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole`
+     *
+     * `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite
+     * {RoleAdminChanged} not being emitted signaling this.
+     */
+    event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole);
+
+    /**
+     * @dev Emitted when `account` is granted `role`.
+     *
+     * `sender` is the account that originated the contract call. This account bears the admin role (for the granted role).
+     * Expected in cases where the role was granted using the internal {AccessControl-_grantRole}.
+     */
+    event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
+
+    /**
+     * @dev Emitted when `account` is revoked `role`.
+     *
+     * `sender` is the account that originated the contract call:
+     *   - if using `revokeRole`, it is the admin role bearer
+     *   - if using `renounceRole`, it is the role bearer (i.e. `account`)
+     */
+    event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
+
+    /**
+     * @dev Returns `true` if `account` has been granted `role`.
+     */
+    function hasRole(bytes32 role, address account) external view returns (bool);
+
+    /**
+     * @dev Returns the admin role that controls `role`. See {grantRole} and
+     * {revokeRole}.
+     *
+     * To change a role's admin, use {AccessControl-_setRoleAdmin}.
+     */
+    function getRoleAdmin(bytes32 role) external view returns (bytes32);
+
+    /**
+     * @dev Grants `role` to `account`.
+     *
+     * If `account` had not been already granted `role`, emits a {RoleGranted}
+     * event.
+     *
+     * Requirements:
+     *
+     * - the caller must have ``role``'s admin role.
+     */
+    function grantRole(bytes32 role, address account) external;
+
+    /**
+     * @dev Revokes `role` from `account`.
+     *
+     * If `account` had been granted `role`, emits a {RoleRevoked} event.
+     *
+     * Requirements:
+     *
+     * - the caller must have ``role``'s admin role.
+     */
+    function revokeRole(bytes32 role, address account) external;
+
+    /**
+     * @dev Revokes `role` from the calling account.
+     *
+     * Roles are often managed via {grantRole} and {revokeRole}: this function's
+     * purpose is to provide a mechanism for accounts to lose their privileges
+     * if they are compromised (such as when a trusted device is misplaced).
+     *
+     * If the calling account had been granted `role`, emits a {RoleRevoked}
+     * event.
+     *
+     * Requirements:
+     *
+     * - the caller must be `callerConfirmation`.
+     */
+    function renounceRole(bytes32 role, address callerConfirmation) external;
+}
+
+/**
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
  * via msg.sender and msg.data, they should not be accessed in such a direct
@@ -22,6 +116,249 @@ abstract contract Context {
 
     function _contextSuffixLength() internal view virtual returns (uint256) {
         return 0;
+    }
+}
+
+/**
+ * @dev Interface of the ERC-165 standard, as defined in the
+ * https://eips.ethereum.org/EIPS/eip-165[ERC].
+ *
+ * Implementers can declare support of contract interfaces, which can then be
+ * queried by others ({ERC165Checker}).
+ *
+ * For an implementation, see {ERC165}.
+ */
+interface IERC165 {
+    /**
+     * @dev Returns true if this contract implements the interface defined by
+     * `interfaceId`. See the corresponding
+     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[ERC section]
+     * to learn more about how these ids are created.
+     *
+     * This function call must use less than 30 000 gas.
+     */
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+
+/**
+ * @dev Implementation of the {IERC165} interface.
+ *
+ * Contracts that want to implement ERC-165 should inherit from this contract and override {supportsInterface} to check
+ * for the additional interface id that will be supported. For example:
+ *
+ * ```solidity
+ * function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+ *     return interfaceId == type(MyInterface).interfaceId || super.supportsInterface(interfaceId);
+ * }
+ * ```
+ */
+abstract contract ERC165 is IERC165 {
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
+        return interfaceId == type(IERC165).interfaceId;
+    }
+}
+
+/**
+ * @dev Contract module that allows children to implement role-based access
+ * control mechanisms. This is a lightweight version that doesn't allow enumerating role
+ * members except through off-chain means by accessing the contract event logs. Some
+ * applications may benefit from on-chain enumerability, for those cases see
+ * {AccessControlEnumerable}.
+ *
+ * Roles are referred to by their `bytes32` identifier. These should be exposed
+ * in the external API and be unique. The best way to achieve this is by
+ * using `public constant` hash digests:
+ *
+ * ```solidity
+ * bytes32 public constant MY_ROLE = keccak256("MY_ROLE");
+ * ```
+ *
+ * Roles can be used to represent a set of permissions. To restrict access to a
+ * function call, use {hasRole}:
+ *
+ * ```solidity
+ * function foo() public {
+ *     require(hasRole(MY_ROLE, msg.sender));
+ *     ...
+ * }
+ * ```
+ *
+ * Roles can be granted and revoked dynamically via the {grantRole} and
+ * {revokeRole} functions. Each role has an associated admin role, and only
+ * accounts that have a role's admin role can call {grantRole} and {revokeRole}.
+ *
+ * By default, the admin role for all roles is `DEFAULT_ADMIN_ROLE`, which means
+ * that only accounts with this role will be able to grant or revoke other
+ * roles. More complex role relationships can be created by using
+ * {_setRoleAdmin}.
+ *
+ * WARNING: The `DEFAULT_ADMIN_ROLE` is also its own admin: it has permission to
+ * grant and revoke this role. Extra precautions should be taken to secure
+ * accounts that have been granted it. We recommend using {AccessControlDefaultAdminRules}
+ * to enforce additional security measures for this role.
+ */
+abstract contract AccessControl is Context, IAccessControl, ERC165 {
+    struct RoleData {
+        mapping(address account => bool) hasRole;
+        bytes32 adminRole;
+    }
+
+    mapping(bytes32 role => RoleData) private _roles;
+
+    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
+
+    /**
+     * @dev Modifier that checks that an account has a specific role. Reverts
+     * with an {AccessControlUnauthorizedAccount} error including the required role.
+     */
+    modifier onlyRole(bytes32 role) {
+        _checkRole(role);
+        _;
+    }
+
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IAccessControl).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    /**
+     * @dev Returns `true` if `account` has been granted `role`.
+     */
+    function hasRole(bytes32 role, address account) public view virtual returns (bool) {
+        return _roles[role].hasRole[account];
+    }
+
+    /**
+     * @dev Reverts with an {AccessControlUnauthorizedAccount} error if `_msgSender()`
+     * is missing `role`. Overriding this function changes the behavior of the {onlyRole} modifier.
+     */
+    function _checkRole(bytes32 role) internal view virtual {
+        _checkRole(role, _msgSender());
+    }
+
+    /**
+     * @dev Reverts with an {AccessControlUnauthorizedAccount} error if `account`
+     * is missing `role`.
+     */
+    function _checkRole(bytes32 role, address account) internal view virtual {
+        if (!hasRole(role, account)) {
+            revert AccessControlUnauthorizedAccount(account, role);
+        }
+    }
+
+    /**
+     * @dev Returns the admin role that controls `role`. See {grantRole} and
+     * {revokeRole}.
+     *
+     * To change a role's admin, use {_setRoleAdmin}.
+     */
+    function getRoleAdmin(bytes32 role) public view virtual returns (bytes32) {
+        return _roles[role].adminRole;
+    }
+
+    /**
+     * @dev Grants `role` to `account`.
+     *
+     * If `account` had not been already granted `role`, emits a {RoleGranted}
+     * event.
+     *
+     * Requirements:
+     *
+     * - the caller must have ``role``'s admin role.
+     *
+     * May emit a {RoleGranted} event.
+     */
+    function grantRole(bytes32 role, address account) public virtual onlyRole(getRoleAdmin(role)) {
+        _grantRole(role, account);
+    }
+
+    /**
+     * @dev Revokes `role` from `account`.
+     *
+     * If `account` had been granted `role`, emits a {RoleRevoked} event.
+     *
+     * Requirements:
+     *
+     * - the caller must have ``role``'s admin role.
+     *
+     * May emit a {RoleRevoked} event.
+     */
+    function revokeRole(bytes32 role, address account) public virtual onlyRole(getRoleAdmin(role)) {
+        _revokeRole(role, account);
+    }
+
+    /**
+     * @dev Revokes `role` from the calling account.
+     *
+     * Roles are often managed via {grantRole} and {revokeRole}: this function's
+     * purpose is to provide a mechanism for accounts to lose their privileges
+     * if they are compromised (such as when a trusted device is misplaced).
+     *
+     * If the calling account had been revoked `role`, emits a {RoleRevoked}
+     * event.
+     *
+     * Requirements:
+     *
+     * - the caller must be `callerConfirmation`.
+     *
+     * May emit a {RoleRevoked} event.
+     */
+    function renounceRole(bytes32 role, address callerConfirmation) public virtual {
+        if (callerConfirmation != _msgSender()) {
+            revert AccessControlBadConfirmation();
+        }
+
+        _revokeRole(role, callerConfirmation);
+    }
+
+    /**
+     * @dev Sets `adminRole` as ``role``'s admin role.
+     *
+     * Emits a {RoleAdminChanged} event.
+     */
+    function _setRoleAdmin(bytes32 role, bytes32 adminRole) internal virtual {
+        bytes32 previousAdminRole = getRoleAdmin(role);
+        _roles[role].adminRole = adminRole;
+        emit RoleAdminChanged(role, previousAdminRole, adminRole);
+    }
+
+    /**
+     * @dev Attempts to grant `role` to `account` and returns a boolean indicating if `role` was granted.
+     *
+     * Internal function without access restriction.
+     *
+     * May emit a {RoleGranted} event.
+     */
+    function _grantRole(bytes32 role, address account) internal virtual returns (bool) {
+        if (!hasRole(role, account)) {
+            _roles[role].hasRole[account] = true;
+            emit RoleGranted(role, account, _msgSender());
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * @dev Attempts to revoke `role` to `account` and returns a boolean indicating if `role` was revoked.
+     *
+     * Internal function without access restriction.
+     *
+     * May emit a {RoleRevoked} event.
+     */
+    function _revokeRole(bytes32 role, address account) internal virtual returns (bool) {
+        if (hasRole(role, account)) {
+            _roles[role].hasRole[account] = false;
+            emit RoleRevoked(role, account, _msgSender());
+            return true;
+        } else {
+            return false;
+        }
     }
 }
 
@@ -119,6 +456,7 @@ abstract contract Ownable is Context {
         emit OwnershipTransferred(oldOwner, newOwner);
     }
 }
+
 
 /**
  * @dev Standard ERC-20 Errors
@@ -278,6 +616,7 @@ interface IERC1155Errors {
     error ERC1155InvalidArrayLength(uint256 idsLength, uint256 valuesLength);
 }
 
+
 /**
  * @dev Interface of the ERC-20 standard as defined in the ERC.
  */
@@ -353,6 +692,7 @@ interface IERC20 {
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
 
+
 /**
  * @dev Interface for the optional metadata functions from the ERC-20 standard.
  */
@@ -372,6 +712,8 @@ interface IERC20Metadata is IERC20 {
      */
     function decimals() external view returns (uint8);
 }
+
+
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -676,6 +1018,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
     }
 }
 
+
 /**
  * @dev Interface of the ERC-20 Permit extension allowing approvals to be made via signatures, as defined in
  * https://eips.ethereum.org/EIPS/eip-2612[ERC-2612].
@@ -761,6 +1104,7 @@ interface IERC20Permit {
     // solhint-disable-next-line func-name-mixedcase
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 }
+
 
 /**
  * @dev Elliptic Curve Digital Signature Algorithm (ECDSA) operations.
@@ -938,6 +1282,7 @@ library ECDSA {
     }
 }
 
+
 interface IERC5267 {
     /**
      * @dev MAY be emitted to signal that the domain could have changed.
@@ -961,6 +1306,7 @@ interface IERC5267 {
             uint256[] memory extensions
         );
 }
+
 
 /**
  * @dev Wrappers over Solidity's uintXX/intXX/bool casting operators with added overflow
@@ -2119,6 +2465,7 @@ library SafeCast {
     }
 }
 
+
 /**
  * @dev Helper library for emitting standardized panic codes.
  *
@@ -2171,6 +2518,7 @@ library Panic {
         }
     }
 }
+
 
 
 /**
@@ -2913,6 +3261,8 @@ library SignedMath {
     }
 }
 
+
+
 /**
  * @dev String operations.
  */
@@ -3022,6 +3372,7 @@ library Strings {
     }
 }
 
+
 /**
  * @dev Signature message hash utilities for producing digests to be consumed by {ECDSA} recovery or signing.
  *
@@ -3099,6 +3450,7 @@ library MessageHashUtils {
         }
     }
 }
+
 
 /**
  * @dev Library for reading and writing primitive types to specific storage slots.
@@ -3237,6 +3589,7 @@ library StorageSlot {
         }
     }
 }
+
 
 // | string  | 0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA   |
 // | length  | 0x                                                              BB |
@@ -3625,6 +3978,125 @@ abstract contract ERC20Permit is ERC20, IERC20Permit, EIP712, Nonces {
     }
 }
 
+
+/**
+ * @dev Collection of common custom errors used in multiple contracts
+ *
+ * IMPORTANT: Backwards compatibility is not guaranteed in future versions of the library.
+ * It is recommended to avoid relying on the error API for critical functionality.
+ *
+ * _Available since v5.1._
+ */
+library Errors {
+    /**
+     * @dev The ETH balance of the account is not enough to perform the operation.
+     */
+    error InsufficientBalance(uint256 balance, uint256 needed);
+
+    /**
+     * @dev A call to an address target failed. The target may have reverted.
+     */
+    error FailedCall();
+
+    /**
+     * @dev The deployment failed.
+     */
+    error FailedDeployment();
+
+    /**
+     * @dev A necessary precompile is missing.
+     */
+    error MissingPrecompile(address);
+}
+
+
+/**
+ * @dev Helper to make usage of the `CREATE2` EVM opcode easier and safer.
+ * `CREATE2` can be used to compute in advance the address where a smart
+ * contract will be deployed, which allows for interesting new mechanisms known
+ * as 'counterfactual interactions'.
+ *
+ * See the https://eips.ethereum.org/EIPS/eip-1014#motivation[EIP] for more
+ * information.
+ */
+library Create2 {
+    /**
+     * @dev There's no code to deploy.
+     */
+    error Create2EmptyBytecode();
+
+    /**
+     * @dev Deploys a contract using `CREATE2`. The address where the contract
+     * will be deployed can be known in advance via {computeAddress}.
+     *
+     * The bytecode for a contract can be obtained from Solidity with
+     * `type(contractName).creationCode`.
+     *
+     * Requirements:
+     *
+     * - `bytecode` must not be empty.
+     * - `salt` must have not been used for `bytecode` already.
+     * - the factory must have a balance of at least `amount`.
+     * - if `amount` is non-zero, `bytecode` must have a `payable` constructor.
+     */
+    function deploy(uint256 amount, bytes32 salt, bytes memory bytecode) internal returns (address addr) {
+        if (address(this).balance < amount) {
+            revert Errors.InsufficientBalance(address(this).balance, amount);
+        }
+        if (bytecode.length == 0) {
+            revert Create2EmptyBytecode();
+        }
+        assembly ("memory-safe") {
+            addr := create2(amount, add(bytecode, 0x20), mload(bytecode), salt)
+            // if no address was created, and returndata is not empty, bubble revert
+            if and(iszero(addr), not(iszero(returndatasize()))) {
+                let p := mload(0x40)
+                returndatacopy(p, 0, returndatasize())
+                revert(p, returndatasize())
+            }
+        }
+        if (addr == address(0)) {
+            revert Errors.FailedDeployment();
+        }
+    }
+
+    /**
+     * @dev Returns the address where a contract will be stored if deployed via {deploy}. Any change in the
+     * `bytecodeHash` or `salt` will result in a new destination address.
+     */
+    function computeAddress(bytes32 salt, bytes32 bytecodeHash) internal view returns (address) {
+        return computeAddress(salt, bytecodeHash, address(this));
+    }
+
+    /**
+     * @dev Returns the address where a contract will be stored if deployed via {deploy} from a contract located at
+     * `deployer`. If `deployer` is this contract's address, returns the same value as {computeAddress}.
+     */
+    function computeAddress(bytes32 salt, bytes32 bytecodeHash, address deployer) internal pure returns (address addr) {
+        assembly ("memory-safe") {
+            let ptr := mload(0x40) // Get free memory pointer
+
+            // |                   | ↓ ptr ...  ↓ ptr + 0x0B (start) ...  ↓ ptr + 0x20 ...  ↓ ptr + 0x40 ...   |
+            // |-------------------|---------------------------------------------------------------------------|
+            // | bytecodeHash      |                                                        CCCCCCCCCCCCC...CC |
+            // | salt              |                                      BBBBBBBBBBBBB...BB                   |
+            // | deployer          | 000000...0000AAAAAAAAAAAAAAAAAAA...AA                                     |
+            // | 0xFF              |            FF                                                             |
+            // |-------------------|---------------------------------------------------------------------------|
+            // | memory            | 000000...00FFAAAAAAAAAAAAAAAAAAA...AABBBBBBBBBBBBB...BBCCCCCCCCCCCCC...CC |
+            // | keccak(start, 85) |            ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ |
+
+            mstore(add(ptr, 0x40), bytecodeHash)
+            mstore(add(ptr, 0x20), salt)
+            mstore(ptr, deployer) // Right-aligned with 12 preceding garbage bytes
+            let start := add(ptr, 0x0b) // The hashed data starts at the final garbage byte which we will set to 0xff
+            mstore8(start, 0xff)
+            addr := and(keccak256(start, 85), 0xffffffffffffffffffffffffffffffffffffffff)
+        }
+    }
+}
+
+
 /**
  * @dev Contract module which allows children to implement an emergency stop
  * mechanism that can be triggered by an authorized account.
@@ -3735,6 +4207,277 @@ abstract contract Pausable is Context {
     function _unpause() internal virtual whenPaused {
         _paused = false;
         emit Unpaused(_msgSender());
+    }
+}
+
+
+contract MultiSigWallet {
+
+    uint256 public numConfirmationsRequired;
+    address[] public owners;
+    //uint256 public activeOwners;
+    mapping(address => bool) public blacklist;
+
+    struct Transaction {
+        address to;
+        uint256 value;
+        bytes data;
+        uint256 numConfirmations;
+        uint256 deadline;
+        bool executed;
+    }
+
+    Transaction[] public transactions;
+    // mapping from tx index => owner => bool
+    mapping(uint256 => mapping(address => bool)) public isConfirmed;
+    mapping(address => bool) public isOwner;
+    mapping(address => uint256[]) public txOwner;
+    
+    event Deposit(address indexed sender, uint256 amount, uint256 balance);
+    event SubmitTransaction(
+        address indexed owner,
+        uint256 indexed txIndex,
+        address indexed to,
+        uint256 value,
+        bytes data
+    );
+   
+    event ConfirmTransaction(address indexed owner, uint256 indexed txIndex);
+    event RevokeConfirmation(address indexed owner, uint256 indexed txIndex);
+    event ExecuteTransaction(address indexed owner, uint256 indexed txIndex);
+
+    modifier onlyOwner() {
+        require(isOwner[msg.sender], "not owner");
+        _;
+    }
+
+    modifier onlyContract() {
+        require(address(this) == msg.sender, "only contract");
+        _;
+    }
+
+    modifier txExists(uint256 _txIndex) {
+        require(_txIndex < transactions.length, "tx does not exist");
+        _;
+    }
+
+    modifier notExecuted(uint256 _txIndex) {
+        require(!transactions[_txIndex].executed, "tx already executed");
+        _;
+    }
+
+    modifier notConfirmed(uint256 _txIndex) {
+        require(!isConfirmed[_txIndex][msg.sender], "tx already confirmed");
+        _;
+    }
+
+    modifier notBlacklisted(address _address) {
+        require(!blacklist[_address], "Address is blacklisted");
+        _;
+    }
+
+    constructor(address[] memory _owners, uint256 _numConfirmationsRequired) payable {
+        require(_owners.length > 0, "owners required");
+        require(
+            _numConfirmationsRequired > 0
+                && _numConfirmationsRequired <= _owners.length,
+            "invalid number of required confirmations"
+        );
+
+        for (uint256 i = 0; i < _owners.length; i++) {
+            address owner = _owners[i];
+
+            require(owner != address(0), "invalid owner");
+            require(!isOwner[owner], "owner not unique");
+
+            isOwner[owner] = true;
+            owners.push(owner);
+        }
+
+        //activeOwners = _owners.length;
+        numConfirmationsRequired = _numConfirmationsRequired;
+    }
+
+    function getBalance() external view returns (uint256){
+        return address(this).balance;
+    }
+    
+    receive() external payable {
+        require(msg.value > 0, "msg.value < 0");
+        emit Deposit(msg.sender, msg.value, address(this).balance);
+    }
+
+    function submitTransaction(address _to, uint256 _value, bytes memory _data) public onlyOwner returns (uint256 transactionId) {
+        uint256 txIndex = transactions.length;
+        transactions.push(Transaction({
+            to: _to,
+            value: _value,
+            data: _data,
+            executed: false,
+            numConfirmations: 1,
+            deadline: block.timestamp + 5 days
+        }));
+        isConfirmed[txIndex][msg.sender] = true;
+
+        txOwner[msg.sender].push(txIndex);
+
+        emit SubmitTransaction(msg.sender, txIndex, _to, _value, _data);
+        return txIndex;
+    }
+
+    function confirmTransaction(uint256 _txIndex)
+        public
+        onlyOwner
+        txExists(_txIndex)
+        notExecuted(_txIndex)
+        notConfirmed(_txIndex)
+    {
+        Transaction storage transaction = transactions[_txIndex];
+        require(transaction.deadline > block.timestamp, "transaction outdated");
+        transaction.numConfirmations += 1;
+        isConfirmed[_txIndex][msg.sender] = true;
+
+        emit ConfirmTransaction(msg.sender, _txIndex);
+    }
+
+    function executeTransaction(uint256 _txIndex)
+        public
+        onlyOwner
+        txExists(_txIndex)
+        notExecuted(_txIndex)
+    {
+        Transaction storage transaction = transactions[_txIndex];
+        require(transaction.deadline > block.timestamp, "transaction outdated");
+        require(
+            transaction.numConfirmations >= numConfirmationsRequired,
+            "Not enough confirmations"
+        );
+
+        transaction.executed = true;
+       
+        (bool success, ) = address(transaction.to).call{value: transaction.value}(transaction.data);
+        require(success, "tx failed");
+        
+        emit ExecuteTransaction(msg.sender, _txIndex);
+    }
+
+    function revokeConfirmation(uint256 _txIndex)
+        public
+        onlyOwner
+        txExists(_txIndex)
+        notExecuted(_txIndex)
+    {
+        Transaction storage transaction = transactions[_txIndex];
+        require(transaction.deadline > block.timestamp, "transaction outdated");
+        require(isConfirmed[_txIndex][msg.sender], "tx not confirmed");
+
+        transaction.numConfirmations -= 1;
+        isConfirmed[_txIndex][msg.sender] = false;
+
+        emit RevokeConfirmation(msg.sender, _txIndex);
+    }
+
+    function getActiveOwners() public view returns (address[] memory) {
+        return owners;
+    }
+
+    // Functions for owner management
+    function addOwner(address _owner) notBlacklisted(_owner) public onlyContract { 
+        require(_owner != address(0), "invalid owner");
+        require(!isOwner[_owner], "owner not unique");
+
+        isOwner[_owner] = true;
+        //activeOwners++;
+        owners.push(_owner);
+    }
+
+    /*function removeOwner(address _owner) public onlyContract {
+        require(activeOwners > numConfirmationsRequired, "owner cannot be removed");
+        require(isOwner[_owner], "not owner");
+
+        activeOwners--;
+        isOwner[_owner] = false;
+    } */
+
+    function removeOwner(address _owner) public onlyContract {
+        require(owners.length > numConfirmationsRequired, "owner cannot be removed");
+        require(isOwner[_owner], "not owner");
+
+        //activeOwners--;
+        isOwner[_owner] = false;
+
+        // Get Owners Array Index
+        uint256 ownerIndex;
+        for (uint256 i = 0; i < owners.length;  i++) {
+            if (owners[i] == _owner) {
+                ownerIndex = i;
+                break;
+            }
+        }
+
+        // Owner is deleted from owners array.
+        // address temp = owners[owners.length - 1];
+        //owners[owners.length - 1] = owners[ownerIndex];
+        owners[ownerIndex] = owners[owners.length - 1];
+        owners.pop();
+
+        // Get transactions not executed and less than five days.
+        uint256 txSize = transactions.length;
+        //if(txSize > 0){
+            Transaction storage transaction;
+            for (uint256 i = txSize; i > 0; i--){
+                transaction = transactions[i-1];
+                if(transaction.deadline > block.timestamp){
+                    if(isConfirmed[i-1][_owner] && !transaction.executed) {
+                        transaction.numConfirmations--;
+                    }
+                }
+                else {
+                    break;
+                }
+            }
+        //}
+
+        blacklist[_owner] = true;
+    }
+
+    function changeRequirement(uint256 _numConfirmationsRequired) public onlyContract {
+        require(_numConfirmationsRequired > 0, "confirmations required"); 
+        require(_numConfirmationsRequired <= owners.length, "invalid number of required confirmations");
+        numConfirmationsRequired = _numConfirmationsRequired;
+    }
+
+    function getTransactionCount() public view returns (uint256) {
+        return transactions.length;
+    }
+
+    function getTxsOwner(address _owner) public view returns(uint256[] memory) {
+        return txOwner[_owner];
+    }
+
+    function getTransaction(uint256 _txIndex)
+        public
+        view
+        txExists(_txIndex)
+        returns (
+            address to,
+            uint256 value,
+            bytes memory data,
+            bool executed,
+            uint256 numConfirmations,
+            uint256 deadline
+        )
+    {
+        Transaction memory transaction = transactions[_txIndex];
+
+        return (
+            transaction.to,
+            transaction.value,
+            transaction.data,
+            transaction.executed,
+            transaction.numConfirmations,
+            transaction.deadline
+        );
     }
 }
 
@@ -3850,4 +4593,169 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
         super._transfer(_from, custodyVault, _amount);
         return true;
     }
+}
+
+//import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract TokenVault is AccessControl { 
+    bytes32 public constant VAULT_OWNER_ROLE = keccak256("VAULT_OWNER_ROLE");
+    bytes32 public constant VAULT_TRANSFER_ROLE = keccak256("VAULT_TRANSFER_ROLE");
+    event Transfer(address indexed recipient, uint256 amount);
+
+    constructor(address _multisig) {
+        _setRoleAdmin(DEFAULT_ADMIN_ROLE, VAULT_OWNER_ROLE);
+        _setRoleAdmin(VAULT_OWNER_ROLE, VAULT_OWNER_ROLE);
+        
+        _grantRole(VAULT_OWNER_ROLE, _multisig);
+        _grantRole(VAULT_TRANSFER_ROLE, msg.sender);
+    }
+
+    function transfer(address _token, address _recipient, uint256 _amount) 
+        public 
+        onlyRole(VAULT_TRANSFER_ROLE) 
+    {
+        require(_token != address(0), "Address zero");
+        require(IERC20(_token).transfer(_recipient, _amount), "Transfer failed");
+        emit Transfer(_recipient, _amount);
+    }
+
+    function getBalance(address _token) 
+        public 
+        view 
+        returns (uint256) 
+    {
+        return IERC20(_token).balanceOf(address(this));
+    }
+
+    function grantRole(bytes32 role, address account) 
+        public 
+        override 
+        onlyRole(VAULT_OWNER_ROLE) 
+    {
+        _grantRole(role, account);
+    }
+
+    function revokeRole(bytes32 role, address account) 
+        public 
+        override 
+        onlyRole(VAULT_OWNER_ROLE) 
+    {
+        _revokeRole(role, account);
+    }
+}
+
+
+contract ContractFactory is Ownable  {
+    address public latestTokenAddress;
+    mapping(bytes32 => address) public deployedTokens;
+    mapping(bytes32 => address) public deployedMultiSigs;
+    mapping(bytes32 => address) public deployedVaults;
+
+    constructor() Ownable(_msgSender()) {} 
+
+    modifier isTokenNotDeployed(bytes32 _salt) {
+        require(deployedTokens[_salt] == address(0), "T already deployed for this s");
+        _;
+    }
+
+    modifier isMultiSigNotDeployed(bytes32 _salt) {
+        require(deployedMultiSigs[_salt] == address(0), "M already deployed for this s");
+        _;
+    }
+
+    modifier isVaultNotDeployed(bytes32 _salt) {
+        require(deployedVaults[_salt] == address(0), "V already deployed for this s");
+        _;
+    }
+
+    function deployMultiSigWallet(
+        bytes32 _salt,
+        address[] memory _owners,
+        uint256 _numConfirmationsRequired
+    ) external onlyOwner isMultiSigNotDeployed(_salt) returns (address) {
+        bytes memory bytecode = abi.encodePacked(
+            type(MultiSigWallet).creationCode,
+            abi.encode(_owners, _numConfirmationsRequired)
+        );
+
+        address multiSigAddress = Create2.deploy(0, _salt, bytecode);
+        deployedMultiSigs[_salt] = multiSigAddress;
+
+        return multiSigAddress;
+    }
+
+    function computeMultiSigWalletAddress(
+        bytes32 _salt,
+        address[] memory _owners,
+        uint256 _numConfirmationsRequired
+    ) external view returns (address) {
+        bytes memory bytecode = abi.encodePacked(
+            type(MultiSigWallet).creationCode,
+            abi.encode(_owners, _numConfirmationsRequired)
+        );
+
+        return Create2.computeAddress(_salt, keccak256(bytecode));
+    }
+
+    function deployToken(bytes32 _salt, address _custodyVault)
+        external
+        onlyOwner
+        isTokenNotDeployed(_salt)
+        returns (address)
+    {
+        bytes memory bytecode = abi.encodePacked(
+            type(StableToken).creationCode,
+            abi.encode(_custodyVault)
+        );
+
+        address tokenAddress = Create2.deploy(0, _salt, bytecode);
+        deployedTokens[_salt] = tokenAddress;
+        latestTokenAddress = tokenAddress;
+
+        return tokenAddress;
+    }
+
+    function computeTokenAddress(bytes32 _salt, address _custodyVault)
+        external
+        view
+        returns (address)
+    {
+        bytes memory bytecode = abi.encodePacked(
+            type(StableToken).creationCode,
+            abi.encode(_custodyVault)
+        );
+
+        return Create2.computeAddress(_salt, keccak256(bytecode));
+    }
+
+    function deployVault(bytes32 _salt, address _multisig)
+        external
+        onlyOwner
+        isVaultNotDeployed(_salt)
+        returns (address)
+    {
+        bytes memory bytecode = abi.encodePacked(
+            type(TokenVault).creationCode,
+            abi.encode(_multisig)
+        );
+
+        address vaultAddress = Create2.deploy(0, _salt, bytecode);
+        deployedVaults[_salt] = vaultAddress;
+
+        return vaultAddress;
+    }
+
+    function computeVaultAddress(bytes32 _salt, address _multisig)
+        external
+        view
+        returns (address)
+    {
+        bytes memory bytecode = abi.encodePacked(
+            type(TokenVault).creationCode,
+            abi.encode(_multisig)
+        );
+
+        return Create2.computeAddress(_salt, keccak256(bytecode));
+    }
+
 }

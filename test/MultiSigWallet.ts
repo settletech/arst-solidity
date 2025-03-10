@@ -24,7 +24,6 @@ const THREE = 3;
 
 describe("MultiSigWallet", function () {
   
-  
   beforeEach(async function () {
     [owner1, owner2, owner3, owner4, notOwner] = await ethers.getSigners();
     const WalletFactory = await ethers.getContractFactory("MultiSigWallet");
