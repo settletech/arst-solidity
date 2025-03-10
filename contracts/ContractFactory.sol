@@ -1,16 +1,19 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "./MultiSigWallet.sol";
 import "./StableToken.sol";
 import "./Vault.sol";
 
-contract ContractFactory {
+contract ContractFactory is Ownable  {
     address public latestTokenAddress;
     mapping(bytes32 => address) public deployedTokens;
     mapping(bytes32 => address) public deployedMultiSigs;
     mapping(bytes32 => address) public deployedVaults;
+
+    constructor() Ownable(_msgSender()) {} 
 
     modifier isTokenNotDeployed(bytes32 _salt) {
         require(deployedTokens[_salt] == address(0), "T already deployed for this s");
@@ -31,7 +34,7 @@ contract ContractFactory {
         bytes32 _salt,
         address[] memory _owners,
         uint256 _numConfirmationsRequired
-    ) external isMultiSigNotDeployed(_salt) returns (address) {
+    ) external onlyOwner isMultiSigNotDeployed(_salt) returns (address) {
         bytes memory bytecode = abi.encodePacked(
             type(MultiSigWallet).creationCode,
             abi.encode(_owners, _numConfirmationsRequired)
@@ -58,6 +61,7 @@ contract ContractFactory {
 
     function deployToken(bytes32 _salt, address _custodyVault)
         external
+        onlyOwner
         isTokenNotDeployed(_salt)
         returns (address)
     {
@@ -88,6 +92,7 @@ contract ContractFactory {
 
     function deployVault(bytes32 _salt, address _multisig)
         external
+        onlyOwner
         isVaultNotDeployed(_salt)
         returns (address)
     {
