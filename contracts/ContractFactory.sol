@@ -3,121 +3,57 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
-import "./MultiSigWallet.sol";
-import "./StableToken.sol";
-import "./Vault.sol";
+
+interface IOwnable {
+    function transferOwnership(address newOwner) external;
+}
 
 contract ContractFactory is Ownable  {
-    address public latestTokenAddress;
-    mapping(bytes32 => address) public deployedTokens;
-    mapping(bytes32 => address) public deployedMultiSigs;
-    mapping(bytes32 => address) public deployedVaults;
+    address public latestAddress;
+    mapping(bytes32 => address) public deployedContracts;
 
     constructor() Ownable(_msgSender()) {} 
 
-    modifier isTokenNotDeployed(bytes32 _salt) {
-        require(deployedTokens[_salt] == address(0), "T already deployed for this s");
+    modifier isContractNotDeployed(bytes32 _salt) {
+        require(deployedContracts[_salt] == address(0), "Contract deployed");
         _;
     }
 
-    modifier isMultiSigNotDeployed(bytes32 _salt) {
-        require(deployedMultiSigs[_salt] == address(0), "M already deployed for this s");
-        _;
-    }
-
-    modifier isVaultNotDeployed(bytes32 _salt) {
-        require(deployedVaults[_salt] == address(0), "V already deployed for this s");
-        _;
-    }
-
-    function deployMultiSigWallet(
-        bytes32 _salt,
-        address[] memory _owners,
-        uint256 _numConfirmationsRequired
-    ) external onlyOwner isMultiSigNotDeployed(_salt) returns (address) {
-        bytes memory bytecode = abi.encodePacked(
-            type(MultiSigWallet).creationCode,
-            abi.encode(_owners, _numConfirmationsRequired)
-        );
-
-        address multiSigAddress = Create2.deploy(0, _salt, bytecode);
-        deployedMultiSigs[_salt] = multiSigAddress;
-
-        return multiSigAddress;
-    }
-
-    function computeMultiSigWalletAddress(
-        bytes32 _salt,
-        address[] memory _owners,
-        uint256 _numConfirmationsRequired
-    ) external view returns (address) {
-        bytes memory bytecode = abi.encodePacked(
-            type(MultiSigWallet).creationCode,
-            abi.encode(_owners, _numConfirmationsRequired)
-        );
-
-        return Create2.computeAddress(_salt, keccak256(bytecode));
-    }
-
-    function deployToken(bytes32 _salt, address _custodyVault)
+    function changeTokenOwnership(address _contract, address _newOwner)
         external
-        onlyOwner
-        isTokenNotDeployed(_salt)
-        returns (address)
     {
-        bytes memory bytecode = abi.encodePacked(
-            type(StableToken).creationCode,
-            abi.encode(_custodyVault)
+        (bool success,) = _contract.call(
+            abi.encodeWithSignature("transferOwnership(address)", _newOwner)
         );
-
-        address tokenAddress = Create2.deploy(0, _salt, bytecode);
-        deployedTokens[_salt] = tokenAddress;
-        latestTokenAddress = tokenAddress;
-
-        return tokenAddress;
+        require(success, "transfer ownership failed");
     }
 
-    function computeTokenAddress(bytes32 _salt, address _custodyVault)
-        external
-        view
-        returns (address)
+    function deployContract(bytes32 _salt, bytes memory _code, bytes memory _params) 
+        external 
+        isContractNotDeployed(_salt) 
+        returns (address) 
     {
-        bytes memory bytecode = abi.encodePacked(
-            type(StableToken).creationCode,
-            abi.encode(_custodyVault)
+
+        bytes memory initCode = abi.encodePacked(_code, _params);
+        
+        latestAddress = Create2.deploy(
+            0,
+            _salt,
+            initCode
         );
 
-        return Create2.computeAddress(_salt, keccak256(bytecode));
+        deployedContracts[_salt] = latestAddress;
+        return latestAddress;
     }
 
-    function deployVault(bytes32 _salt, address _multisig)
-        external
-        onlyOwner
-        isVaultNotDeployed(_salt)
-        returns (address)
+    function computeTokenAddress(bytes32 _salt, bytes memory _code, bytes memory _params)
+        public 
+        view 
+        returns (address) 
     {
-        bytes memory bytecode = abi.encodePacked(
-            type(TokenVault).creationCode,
-            abi.encode(_multisig)
+        return Create2.computeAddress(
+            _salt,
+            keccak256(abi.encodePacked(_code, _params))
         );
-
-        address vaultAddress = Create2.deploy(0, _salt, bytecode);
-        deployedVaults[_salt] = vaultAddress;
-
-        return vaultAddress;
     }
-
-    function computeVaultAddress(bytes32 _salt, address _multisig)
-        external
-        view
-        returns (address)
-    {
-        bytes memory bytecode = abi.encodePacked(
-            type(TokenVault).creationCode,
-            abi.encode(_multisig)
-        );
-
-        return Create2.computeAddress(_salt, keccak256(bytecode));
-    }
-
 }

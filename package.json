@@ -4,16 +4,21 @@
   "description": "arst stablecoin",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy:sepolia": "npx hardhat run scripts/deployFactory.js --network sepolia",
+    "deploy:fuji": "npx hardhat run scripts/deployFactory.js --network fuji",
+    "deploy:local": "npx hardhat run scripts/deployFactory.js"
   },
   "author": "Eduardo Castillo Salgado",
   "license": "ISC",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.13",
     "hardhat": "^2.22.17"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.1.0",
+    "dotenv": "^16.4.7",
     "tronweb": "^6.0.0"
   }
 }
