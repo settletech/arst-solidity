@@ -50,17 +50,28 @@ async function main() {
 
     Gimer
     0xDa058764580d50AA1cfdae93430583cd4CdFc98a
+    0xa623046B3Cb9619BACe903a8c6d7A1c0A6723c53
 
     Juan Pablo
-    0x37830533FDD0ED0C389BFB10D37FBC08F4A39601
+    0xA84947d52236A17E90E27Ed1f3D9726a763421D9
+
+    Eduardo
+    0x5Ed9038803BD73bD85875A1a3149C505be773933
      */
     salt = getSalt(deployer, "MultiSig");
     const params = abi.encode(["address[]","uint256"],
-        [["0x8cAecf5643F42752D7B67D76944F3dE74e790Db3","0x3913C3ef42072f85F843FE96ED3b74b7b52C943F","0xB8Cc6Ea3CEdAf57818649D2b8B6297287c3fccF4", "0xf4412888e36b454D6262Fbf68050C9246a48Cb92", "0x4281Dcdf131D51BC23b2e8C7CD30829DE130bD7a", "0xDa058764580d50AA1cfdae93430583cd4CdFc98a","0x37830533FDD0ED0C389BFB10D37FBC08F4A39601"], 1]);
-
+        [
+            [
+                "0x8cAecf5643F42752D7B67D76944F3dE74e790Db3",
+                "0x3913C3ef42072f85F843FE96ED3b74b7b52C943F",
+                "0xB8Cc6Ea3CEdAf57818649D2b8B6297287c3fccF4", 
+                "0xf4412888e36b454D6262Fbf68050C9246a48Cb92", 
+                "0x4281Dcdf131D51BC23b2e8C7CD30829DE130bD7a"
+            ], 2
+        ]);
     
     const tx = await factory.deployContract(salt, multisigCreationCode, params);
-    await tx.wait();
+    await tx.wait(1);
 
     const multiSigAddress = await factory.latestAddress(); 
     const multisig = new ethers.Contract(multiSigAddress, multisigABI, deployer);
@@ -71,7 +82,7 @@ async function main() {
     salt = getSalt(deployer, "Vault");
     const vaultParams = abi.encode(["address", ], [multiSigAddress]);
     const txVault = await factory.deployContract(salt, vaultCreationCode, vaultParams);
-    await txVault.wait();
+    await txVault.wait(1);
 
     const vaultAddress = await factory.latestAddress(); 
     const vault = new ethers.Contract(vaultAddress, vaultABI, deployer);
@@ -80,16 +91,17 @@ async function main() {
     salt = getSalt(deployer, "StableToken");
     const tokenParams = abi.encode(["address", ], [vaultAddress]);
     const txToken = await factory.deployContract(salt, tokenCreationCode, tokenParams);
-    await txToken.wait();
+    await txToken.wait(1);
 
     const tokenAddress = await factory.latestAddress(); 
     const token = new ethers.Contract(tokenAddress, tokenABI, deployer);
 
-    await factory.changeTokenOwnership(tokenAddress, multiSigAddress);
+    // Change Token Ownership
+    const txOwnership = await factory.changeTokenOwnership(tokenAddress, multiSigAddress);
+    await txOwnership.wait(1);
 
     console.log("token Vault: ", await token.custodyVault());
     console.log("token Owner: ", await token.owner());
-
     
     console.log("- ContractFactory: ", factory.target);
     console.log("- MultiSigWallet: ", multiSigAddress);

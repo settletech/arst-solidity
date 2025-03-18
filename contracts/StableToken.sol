@@ -12,9 +12,9 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
     address public custodyVault; 
 
     constructor(address _custodyVault)
-        ERC20("StableToken", "STT") 
+        ERC20("TestToken", "TTK") 
         Ownable(_msgSender())
-        ERC20Permit("StableToken")
+        ERC20Permit("TestToken")
     { 
         custodyVault = _custodyVault;
     }

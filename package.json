@@ -6,8 +6,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "deploy:sepolia": "npx hardhat run scripts/deployFactory.js --network sepolia",
+    "deploy:holesky": "npx hardhat run scripts/deployFactory.js --network holesky",
     "deploy:fuji": "npx hardhat run scripts/deployFactory.js --network fuji",
-    "deploy:local": "npx hardhat run scripts/deployFactory.js"
+    "deploy:baseSepolia": "npx hardhat run scripts/deployFactory.js --network baseSepolia",
+    "deploy:local": "npx hardhat run scripts/deployFactory.js",
+    "test:data": "npx hardhat run scripts/getEncodeFunction.js"
   },
   "author": "Eduardo Castillo Salgado",
   "license": "ISC",
@@ -17,6 +20,7 @@
     "hardhat": "^2.22.17"
   },
   "dependencies": {
+    "@alch/alchemy-web3": "^1.4.7",
     "@openzeppelin/contracts": "^5.1.0",
     "dotenv": "^16.4.7",
     "tronweb": "^6.0.0"
