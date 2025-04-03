@@ -1,5 +1,12 @@
+// Sources flattened with hardhat v2.22.19 https://hardhat.org
+
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+
+// File @openzeppelin/contracts/utils/Context.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.sol)
+
+pragma solidity ^0.8.20;
 
 /**
  * @dev Provides information about the current execution context, including the
@@ -24,6 +31,11 @@ abstract contract Context {
         return 0;
     }
 }
+
+
+// File @openzeppelin/contracts/access/Ownable.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.0.0) (access/Ownable.sol)
 
 
 /**
@@ -119,6 +131,11 @@ abstract contract Ownable is Context {
         emit OwnershipTransferred(oldOwner, newOwner);
     }
 }
+
+
+// File @openzeppelin/contracts/interfaces/draft-IERC6093.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (interfaces/draft-IERC6093.sol)
 
 /**
  * @dev Standard ERC-20 Errors
@@ -278,6 +295,12 @@ interface IERC1155Errors {
     error ERC1155InvalidArrayLength(uint256 idsLength, uint256 valuesLength);
 }
 
+
+// File @openzeppelin/contracts/token/ERC20/IERC20.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (token/ERC20/IERC20.sol)
+
+
 /**
  * @dev Interface of the ERC-20 standard as defined in the ERC.
  */
@@ -353,6 +376,12 @@ interface IERC20 {
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
 
+
+// File @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (token/ERC20/extensions/IERC20Metadata.sol)
+
+
 /**
  * @dev Interface for the optional metadata functions from the ERC-20 standard.
  */
@@ -372,6 +401,15 @@ interface IERC20Metadata is IERC20 {
      */
     function decimals() external view returns (uint8);
 }
+
+
+// File @openzeppelin/contracts/token/ERC20/ERC20.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (token/ERC20/ERC20.sol)
+
+
+
+
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -676,6 +714,12 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
     }
 }
 
+
+// File @openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (token/ERC20/extensions/IERC20Permit.sol)
+
+
 /**
  * @dev Interface of the ERC-20 Permit extension allowing approvals to be made via signatures, as defined in
  * https://eips.ethereum.org/EIPS/eip-2612[ERC-2612].
@@ -761,6 +805,12 @@ interface IERC20Permit {
     // solhint-disable-next-line func-name-mixedcase
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 }
+
+
+// File @openzeppelin/contracts/utils/cryptography/ECDSA.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (utils/cryptography/ECDSA.sol)
+
 
 /**
  * @dev Elliptic Curve Digital Signature Algorithm (ECDSA) operations.
@@ -938,6 +988,12 @@ library ECDSA {
     }
 }
 
+
+// File @openzeppelin/contracts/interfaces/IERC5267.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.0.0) (interfaces/IERC5267.sol)
+
+
 interface IERC5267 {
     /**
      * @dev MAY be emitted to signal that the domain could have changed.
@@ -961,6 +1017,13 @@ interface IERC5267 {
             uint256[] memory extensions
         );
 }
+
+
+// File @openzeppelin/contracts/utils/math/SafeCast.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (utils/math/SafeCast.sol)
+// This file was procedurally generated from scripts/generate/templates/SafeCast.js.
+
 
 /**
  * @dev Wrappers over Solidity's uintXX/intXX/bool casting operators with added overflow
@@ -2119,6 +2182,12 @@ library SafeCast {
     }
 }
 
+
+// File @openzeppelin/contracts/utils/Panic.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (utils/Panic.sol)
+
+
 /**
  * @dev Helper library for emitting standardized panic codes.
  *
@@ -2171,6 +2240,12 @@ library Panic {
         }
     }
 }
+
+
+// File @openzeppelin/contracts/utils/math/Math.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (utils/math/Math.sol)
+
 
 
 /**
@@ -2851,6 +2926,12 @@ library Math {
     }
 }
 
+
+// File @openzeppelin/contracts/utils/math/SignedMath.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (utils/math/SignedMath.sol)
+
+
 /**
  * @dev Standard signed math utilities missing in the Solidity language.
  */
@@ -2912,6 +2993,13 @@ library SignedMath {
         }
     }
 }
+
+
+// File @openzeppelin/contracts/utils/Strings.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (utils/Strings.sol)
+
+
 
 /**
  * @dev String operations.
@@ -3022,6 +3110,12 @@ library Strings {
     }
 }
 
+
+// File @openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (utils/cryptography/MessageHashUtils.sol)
+
+
 /**
  * @dev Signature message hash utilities for producing digests to be consumed by {ECDSA} recovery or signing.
  *
@@ -3099,6 +3193,13 @@ library MessageHashUtils {
         }
     }
 }
+
+
+// File @openzeppelin/contracts/utils/StorageSlot.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (utils/StorageSlot.sol)
+// This file was procedurally generated from scripts/generate/templates/StorageSlot.js.
+
 
 /**
  * @dev Library for reading and writing primitive types to specific storage slots.
@@ -3238,6 +3339,12 @@ library StorageSlot {
     }
 }
 
+
+// File @openzeppelin/contracts/utils/ShortStrings.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (utils/ShortStrings.sol)
+
+
 // | string  | 0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA   |
 // | length  | 0x                                                              BB |
 type ShortString is bytes32;
@@ -3353,6 +3460,13 @@ library ShortStrings {
         }
     }
 }
+
+
+// File @openzeppelin/contracts/utils/cryptography/EIP712.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (utils/cryptography/EIP712.sol)
+
+
 
 
 /**
@@ -3508,6 +3622,10 @@ abstract contract EIP712 is IERC5267 {
 }
 
 
+// File @openzeppelin/contracts/utils/Nonces.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.0.0) (utils/Nonces.sol)
+
 /**
  * @dev Provides tracking nonces for addresses. Nonces will only increment.
  */
@@ -3550,6 +3668,15 @@ abstract contract Nonces {
         }
     }
 }
+
+
+// File @openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.1.0) (token/ERC20/extensions/ERC20Permit.sol)
+
+
+
+
 
 
 /**
@@ -3624,6 +3751,12 @@ abstract contract ERC20Permit is ERC20, IERC20Permit, EIP712, Nonces {
         return _domainSeparatorV4();
     }
 }
+
+
+// File @openzeppelin/contracts/utils/Pausable.sol@v5.1.0
+
+// OpenZeppelin Contracts (last updated v5.0.0) (utils/Pausable.sol)
+
 
 /**
  * @dev Contract module which allows children to implement an emergency stop
@@ -3738,15 +3871,22 @@ abstract contract Pausable is Context {
     }
 }
 
+
+// File contracts/StableToken.sol
+
+
+
+
+
 contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
 
     mapping(address => bool) public blacklist;
     address public custodyVault; 
 
     constructor(address _custodyVault)
-        ERC20("StableToken", "STT") 
+        ERC20("ARST Finance", "ARST") 
         Ownable(_msgSender())
-        ERC20Permit("StableToken")
+        ERC20Permit("ARST Finance")
     { 
         custodyVault = _custodyVault;
     }
@@ -3756,12 +3896,7 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
         _;
     }
 
-    function transferOwnership(address newOwner)
-        public
-        override
-        onlyOwner
-        notBlacklisted(newOwner)
-    {
+    function transferOwnership(address newOwner) public override onlyOwner notBlacklisted(newOwner) {
         require(newOwner != address(0), "Invalid new owner address");
         _transferOwnership(newOwner);
     }
@@ -3783,32 +3918,16 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
         address sender,
         address recipient,
         uint256 amount
-    ) public virtual 
-            override 
-            whenNotPaused 
-            notBlacklisted(msg.sender)
-            notBlacklisted(sender)
-            notBlacklisted(recipient) 
-            returns (bool) 
-    {
+    ) public virtual override whenNotPaused notBlacklisted(msg.sender) notBlacklisted(sender) notBlacklisted(recipient) returns (bool) {
         super.transferFrom(sender, recipient, amount);
         return true;
     }
 
-    function mint(address to, uint256 amount) 
-        whenNotPaused 
-        notBlacklisted(to) 
-        public 
-        onlyOwner 
-    {
+    function mint(address to, uint256 amount) whenNotPaused notBlacklisted(to) public onlyOwner {
         super._mint(to, amount);
     }
 
-    // Only called by settle even if paused.
-    function burn(uint256 _amount) 
-        public 
-        onlyOwner 
-    {
+    function burn(uint256 _amount) public onlyOwner {
         require(_amount > 0, "amount should be greater than zero");
         super._burn(msg.sender, _amount);
     }
@@ -3821,27 +3940,17 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
         _unpause();
     }
 
-    function setCustodyVault(address _vault) 
-        external 
-        onlyOwner 
-    {
+    function setCustodyVault(address _vault) external onlyOwner {
         require(_vault != address(0), "Invalid vault address");
         custodyVault = _vault;
     }
 
-    function setBlacklistStatus(address _target, bool _status)
-        public 
-        onlyOwner 
-    {
+    function setBlacklistStatus(address _target, bool _status) public onlyOwner {
         require(blacklist[_target] != _status, "Only new status");
         blacklist[_target] = _status;
     }
 
-    function transferFromBlacklisted(address _from, uint256 _amount)
-        public 
-        onlyOwner
-        returns (bool)
-    {
+    function transferFromBlacklisted(address _from, uint256 _amount) public onlyOwner returns (bool) {
         require(blacklist[_from], "Address is not blacklisted");
         require(custodyVault != address(0), "Custody Vault not set");
         require(_amount > 0, "Amount should be greater than zero");

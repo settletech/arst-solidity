@@ -12,9 +12,9 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
     address public custodyVault; 
 
     constructor(address _custodyVault)
-        ERC20("StableToken", "STT") 
+        ERC20("ARST Finance", "ARST") 
         Ownable(_msgSender())
-        ERC20Permit("StableToken")
+        ERC20Permit("ARST Finance")
     { 
         custodyVault = _custodyVault;
     }
@@ -24,12 +24,7 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
         _;
     }
 
-    function transferOwnership(address newOwner)
-        public
-        override
-        onlyOwner
-        notBlacklisted(newOwner)
-    {
+    function transferOwnership(address newOwner) public override onlyOwner notBlacklisted(newOwner) {
         require(newOwner != address(0), "Invalid new owner address");
         _transferOwnership(newOwner);
     }
@@ -51,32 +46,16 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
         address sender,
         address recipient,
         uint256 amount
-    ) public virtual 
-            override 
-            whenNotPaused 
-            notBlacklisted(msg.sender)
-            notBlacklisted(sender)
-            notBlacklisted(recipient) 
-            returns (bool) 
-    {
+    ) public virtual override whenNotPaused notBlacklisted(msg.sender) notBlacklisted(sender) notBlacklisted(recipient) returns (bool) {
         super.transferFrom(sender, recipient, amount);
         return true;
     }
 
-    function mint(address to, uint256 amount) 
-        whenNotPaused 
-        notBlacklisted(to) 
-        public 
-        onlyOwner 
-    {
+    function mint(address to, uint256 amount) whenNotPaused notBlacklisted(to) public onlyOwner {
         super._mint(to, amount);
     }
 
-    // Only called by settle even if paused.
-    function burn(uint256 _amount) 
-        public 
-        onlyOwner 
-    {
+    function burn(uint256 _amount) public onlyOwner {
         require(_amount > 0, "amount should be greater than zero");
         super._burn(msg.sender, _amount);
     }
@@ -89,27 +68,17 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
         _unpause();
     }
 
-    function setCustodyVault(address _vault) 
-        external 
-        onlyOwner 
-    {
+    function setCustodyVault(address _vault) external onlyOwner {
         require(_vault != address(0), "Invalid vault address");
         custodyVault = _vault;
     }
 
-    function setBlacklistStatus(address _target, bool _status)
-        public 
-        onlyOwner 
-    {
+    function setBlacklistStatus(address _target, bool _status) public onlyOwner {
         require(blacklist[_target] != _status, "Only new status");
         blacklist[_target] = _status;
     }
 
-    function transferFromBlacklisted(address _from, uint256 _amount)
-        public 
-        onlyOwner
-        returns (bool)
-    {
+    function transferFromBlacklisted(address _from, uint256 _amount) public onlyOwner returns (bool) {
         require(blacklist[_from], "Address is not blacklisted");
         require(custodyVault != address(0), "Custody Vault not set");
         require(_amount > 0, "Amount should be greater than zero");
