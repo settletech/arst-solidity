@@ -20,6 +20,7 @@ contract ContractFactory is Ownable  {
     }
 
     function changeTokenOwnership(address _contract, address _newOwner)
+        onlyOwner()
         external
     {
         (bool success,) = _contract.call(
@@ -29,6 +30,7 @@ contract ContractFactory is Ownable  {
     }
 
     function deployContract(bytes32 _salt, bytes memory _code, bytes memory _params) 
+        onlyOwner()
         external 
         isContractNotDeployed(_salt) 
         returns (address) 

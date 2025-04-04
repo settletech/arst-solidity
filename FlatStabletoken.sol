@@ -1,4 +1,12 @@
+// Sources flattened with hardhat v2.22.17 https://hardhat.org
+
 // SPDX-License-Identifier: MIT
+
+// File @openzeppelin/contracts/utils/Context.sol@v5.1.0
+
+// Original license: SPDX_License_Identifier: MIT
+// OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.sol)
+
 pragma solidity 0.8.20;
 
 /**
@@ -119,6 +127,7 @@ abstract contract Ownable is Context {
         emit OwnershipTransferred(oldOwner, newOwner);
     }
 }
+
 
 /**
  * @dev Standard ERC-20 Errors
@@ -278,6 +287,7 @@ interface IERC1155Errors {
     error ERC1155InvalidArrayLength(uint256 idsLength, uint256 valuesLength);
 }
 
+
 /**
  * @dev Interface of the ERC-20 standard as defined in the ERC.
  */
@@ -353,6 +363,7 @@ interface IERC20 {
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
 
+
 /**
  * @dev Interface for the optional metadata functions from the ERC-20 standard.
  */
@@ -372,6 +383,10 @@ interface IERC20Metadata is IERC20 {
      */
     function decimals() external view returns (uint8);
 }
+
+
+
+
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -676,6 +691,7 @@ abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
     }
 }
 
+
 /**
  * @dev Interface of the ERC-20 Permit extension allowing approvals to be made via signatures, as defined in
  * https://eips.ethereum.org/EIPS/eip-2612[ERC-2612].
@@ -761,6 +777,8 @@ interface IERC20Permit {
     // solhint-disable-next-line func-name-mixedcase
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 }
+
+
 
 /**
  * @dev Elliptic Curve Digital Signature Algorithm (ECDSA) operations.
@@ -938,6 +956,7 @@ library ECDSA {
     }
 }
 
+
 interface IERC5267 {
     /**
      * @dev MAY be emitted to signal that the domain could have changed.
@@ -961,6 +980,8 @@ interface IERC5267 {
             uint256[] memory extensions
         );
 }
+
+
 
 /**
  * @dev Wrappers over Solidity's uintXX/intXX/bool casting operators with added overflow
@@ -2119,6 +2140,7 @@ library SafeCast {
     }
 }
 
+
 /**
  * @dev Helper library for emitting standardized panic codes.
  *
@@ -2171,6 +2193,7 @@ library Panic {
         }
     }
 }
+
 
 
 /**
@@ -2851,6 +2874,8 @@ library Math {
     }
 }
 
+
+
 /**
  * @dev Standard signed math utilities missing in the Solidity language.
  */
@@ -2912,6 +2937,9 @@ library SignedMath {
         }
     }
 }
+
+
+
 
 /**
  * @dev String operations.
@@ -3022,6 +3050,7 @@ library Strings {
     }
 }
 
+
 /**
  * @dev Signature message hash utilities for producing digests to be consumed by {ECDSA} recovery or signing.
  *
@@ -3099,6 +3128,8 @@ library MessageHashUtils {
         }
     }
 }
+
+
 
 /**
  * @dev Library for reading and writing primitive types to specific storage slots.
@@ -3238,6 +3269,8 @@ library StorageSlot {
     }
 }
 
+
+
 // | string  | 0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA   |
 // | length  | 0x                                                              BB |
 type ShortString is bytes32;
@@ -3353,6 +3386,8 @@ library ShortStrings {
         }
     }
 }
+
+
 
 
 /**
@@ -3508,6 +3543,7 @@ abstract contract EIP712 is IERC5267 {
 }
 
 
+
 /**
  * @dev Provides tracking nonces for addresses. Nonces will only increment.
  */
@@ -3550,6 +3586,10 @@ abstract contract Nonces {
         }
     }
 }
+
+
+
+
 
 
 /**
@@ -3624,6 +3664,8 @@ abstract contract ERC20Permit is ERC20, IERC20Permit, EIP712, Nonces {
         return _domainSeparatorV4();
     }
 }
+
+
 
 /**
  * @dev Contract module which allows children to implement an emergency stop
@@ -3738,15 +3780,29 @@ abstract contract Pausable is Context {
     }
 }
 
+
+
+
+
 contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
 
     mapping(address => bool) public blacklist;
     address public custodyVault; 
 
-    constructor(address _custodyVault)
-        ERC20("StableToken", "STT") 
+    /* 
+        ERC20("TestToken2", "TT2") 
         Ownable(_msgSender())
-        ERC20Permit("StableToken")
+        ERC20Permit("TestToken")
+
+        ERC20("ARST Finance", "ARST") 
+        Ownable(_msgSender())
+        ERC20Permit("ARST Finance")
+    */
+
+    constructor(address _custodyVault)
+        ERC20("ARST Finance", "ARST") 
+        Ownable(_msgSender())
+        ERC20Permit("ARST Finance")
     { 
         custodyVault = _custodyVault;
     }
