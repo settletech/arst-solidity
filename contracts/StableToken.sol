@@ -22,9 +22,9 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
     */
 
     constructor(address _custodyVault)
-        ERC20("TestToken2", "TT2") 
+        ERC20("ARST Finance", "ARST") 
         Ownable(_msgSender())
-        ERC20Permit("TestToken")
+        ERC20Permit("ARST Finance")
     { 
         custodyVault = _custodyVault;
     }
