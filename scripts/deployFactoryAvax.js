@@ -73,7 +73,7 @@ async function main() {
 
     const multiSigAddress = await factory.latestAddress(); 
     const multisig = new ethers.Contract(multiSigAddress, multisigABI, deployer);
-    console.log("Owner: ", await multisig.owners(0));
+    console.log("First MultiSig Owner: ", await multisig.owners(0));
     console.log("Confirmations: ", await multisig.numConfirmationsRequired());
 
     // Vault Deployment
@@ -95,7 +95,8 @@ async function main() {
     const token = new ethers.Contract(tokenAddress, tokenABI, deployer);
 
     // Change Token Ownership
-    const txOwnership = await factory.changeTokenOwnership(tokenAddress, multiSigAddress);
+    // const txOwnership = await factory.changeTokenOwnership(tokenAddress, multiSigAddress);
+    const txOwnership = await factory.changeTokenOwnership(tokenAddress, deployer.address);
     await txOwnership.wait(1);
 
     console.log("token Vault: ", await token.custodyVault());
