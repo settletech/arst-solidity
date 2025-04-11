@@ -1,4 +1,9 @@
+// Sources flattened with hardhat v2.22.19 https://hardhat.org
+
 // SPDX-License-Identifier: MIT
+
+// File contracts/MultiSigWallet.sol
+
 pragma solidity 0.8.20;
 
 contract MultiSigWallet {

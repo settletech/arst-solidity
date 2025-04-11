@@ -52,7 +52,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      blockGasLimit: 30000000, 
+      blockGasLimit: 30000000,
     },
     sepolia: {
       url: SEPOLIA_RPC_URL,
