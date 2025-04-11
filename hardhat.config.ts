@@ -29,12 +29,13 @@ task("accounts", "returns nonce and balance for specified address on multiple ne
   .addParam("address")
   .setAction(async address => {
     const web3Base = createAlchemyWeb3(BASE_URL);
-    const web3Sepolia = createAlchemyWeb3(SEPOLIA_RPC_URL);
+    //const web3Sepolia = createAlchemyWeb3(SEPOLIA_RPC_URL);
     //const web3Fuji = createAlchemyWeb3(FUJI_RPC_URL);
     const web3Avax = createAlchemyWeb3(AVAX_RPC_URL);
+    const web3World = createAlchemyWeb3(WORLD_RPC_URL);
 
-    const networkIDArr = ["        Base: ", "     Sepolia: ", "        Avax: "];
-    const providerArr = [web3Base, web3Sepolia, web3Avax];
+    const networkIDArr = ["        Base: ", "        Avax: ", "        World "];
+    const providerArr = [web3Base, web3Avax, web3World];
     const resultArr = [];
     
     for (let i = 0; i < providerArr.length; i++) {
@@ -107,6 +108,7 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       worldchain_sepolia : "empty",
+      avalanche : "empty",
       fuji: "empty",
       sepolia: ETHERSCAN_API_KEY !== undefined ? ETHERSCAN_API_KEY : "",
       base: BASE_API_KEY !== undefined ? BASE_API_KEY : "",
@@ -116,8 +118,8 @@ const config: HardhatUserConfig = {
         network: "avalanche",
         chainId: 43114,
         urls: {
-          //apiURL: "https://api.avascan.info/v2/network/mainnet/evm/43114/etherscan",
-          apiURL: "https://avalanche-c-chain-rpc.publicnode.com",
+          apiURL: "https://api.avascan.info/v2/network/mainnet/evm/43114/etherscan",
+          // apiURL: "https://avalanche-c-chain-rpc.publicnode.com",
           browserURL: " https://subnets.avax.network/c-chain"
         }
       },
