@@ -9,6 +9,7 @@
     "deploy:holesky": "npx hardhat run scripts/deployFactory.js --network holesky",
     "deploy:fuji": "npx hardhat run scripts/deployFactory.js --network fuji",
     "deploy:baseSepolia": "npx hardhat run scripts/deployFactory.js --network baseSepolia",
+    "deploy:base": "npx hardhat run scripts/deployFactoryAvax.js --network base",
     "deploy:worldSepolia": "npx hardhat run scripts/deployFactory.js --network worldchain_sepolia",
     "deploy:avax": "npx hardhat run scripts/deployFactoryAvax.js --network avalanche",
     "deploy:local": "npx hardhat run scripts/deployFactory.js",

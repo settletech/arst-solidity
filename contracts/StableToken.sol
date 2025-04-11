@@ -11,16 +11,6 @@ contract StableToken is ERC20, Pausable, Ownable, ERC20Permit {
     mapping(address => bool) public blacklist;
     address public custodyVault; 
 
-    /* 
-        ERC20("TestToken2", "TT2") 
-        Ownable(_msgSender())
-        ERC20Permit("TestToken")
-
-        ERC20("ARST Finance", "ARST") 
-        Ownable(_msgSender())
-        ERC20Permit("ARST Finance")
-    */
-
     constructor(address _custodyVault)
         ERC20("ARST Finance", "ARST") 
         Ownable(_msgSender())

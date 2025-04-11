@@ -13,9 +13,11 @@ const {
   CARDONA_RPC_URL,
   HOLESKY_RPC_URL,
   BASE_SEPOLIA_URL,
+  BASE_URL,
   AVAX_PRIVATE_KEY,
   AVAX_RPC_URL,
   AVAX_TEST_RPC_URL,
+  BASE_PRIVATE_KEY,
   WORLD_SEPOLIA_RPC_URL,
   WORLDCOIN_PRIVATE_KEY,
   WORLD_RPC_URL,
@@ -23,22 +25,22 @@ const {
   ETHERSCAN_API_KEY,
 } = process.env;
 
-task("account", "returns nonce and balance for specified address on multiple networks")
+task("accounts", "returns nonce and balance for specified address on multiple networks")
   .addParam("address")
   .setAction(async address => {
-    const web3BaseSepolia = createAlchemyWeb3(BASE_SEPOLIA_URL);
+    const web3Base = createAlchemyWeb3(BASE_URL);
     const web3Sepolia = createAlchemyWeb3(SEPOLIA_RPC_URL);
     //const web3Fuji = createAlchemyWeb3(FUJI_RPC_URL);
     const web3Avax = createAlchemyWeb3(AVAX_RPC_URL);
 
-    const networkIDArr = [" BaseSepolia: ", "     Sepolia: ", "        Avax: "];
-    const providerArr = [web3BaseSepolia, web3Sepolia, web3Avax];
+    const networkIDArr = ["        Base: ", "     Sepolia: ", "        Avax: "];
+    const providerArr = [web3Base, web3Sepolia, web3Avax];
     const resultArr = [];
     
     for (let i = 0; i < providerArr.length; i++) {
       const nonce = await providerArr[i].eth.getTransactionCount(address.address, "latest");
       const balance = await providerArr[i].eth.getBalance(address.address)
-      resultArr.push([networkIDArr[i], nonce, parseFloat(providerArr[i].utils.fromWei(balance, "ether")).toFixed(2) + "ETH"]);
+      resultArr.push([networkIDArr[i], nonce, parseFloat(providerArr[i].utils.fromWei(balance, "ether")).toFixed(4) + "ETH"]);
     }
     resultArr.unshift(["|  NETWORK  | NONCE | BALANCE | "])
     console.log(resultArr);
@@ -64,6 +66,11 @@ const config: HardhatUserConfig = {
       url: BASE_SEPOLIA_URL,
       accounts: 
         TEST_PRIVATE_KEY !== undefined ? [TEST_PRIVATE_KEY] : [],
+    },
+    base: {
+      url: BASE_URL,
+      accounts: 
+        BASE_PRIVATE_KEY !== undefined ? [BASE_PRIVATE_KEY] : [],
     },
     cardona: {
       url: CARDONA_RPC_URL,
@@ -102,7 +109,7 @@ const config: HardhatUserConfig = {
       worldchain_sepolia : "empty",
       fuji: "empty",
       sepolia: ETHERSCAN_API_KEY !== undefined ? ETHERSCAN_API_KEY : "",
-      baseSepolia: BASE_API_KEY !== undefined ? BASE_API_KEY : "",
+      base: BASE_API_KEY !== undefined ? BASE_API_KEY : "",
     },
     customChains: [
       {
