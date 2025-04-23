@@ -24,8 +24,8 @@ describe("StableToken", function () {
 
   describe("Token functionality", function () {
     it("Should have the correct name and symbol", async function () {
-      expect(await token.name()).to.equal("StableToken");
-      expect(await token.symbol()).to.equal("STT");
+      expect(await token.name()).to.equal("ARST Finance");
+      expect(await token.symbol()).to.equal("ARST");
     });
 
     it("Should have an initial supply of 0", async function () {

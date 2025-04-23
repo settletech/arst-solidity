@@ -571,7 +571,7 @@ describe("STT Token Minting", function () {
     const ABI = ["function changeRequirement(uint256 _numConfirmationsRequired)"];
 
     const valueHex = new ethers.Interface(ABI);
-    const requirementData = valueHex.encodeFunctionData("changeRequirement", [ONE]);
+    const requirementData = valueHex.encodeFunctionData("changeRequirement", [TWO]);
 
     await wallet.connect(owner1).submitTransaction(wallet.target, ZERO, requirementData);
 
@@ -580,7 +580,7 @@ describe("STT Token Minting", function () {
 
     await expect(wallet.connect(owner1).executeTransaction(ZERO)).not.to.be.reverted;
 
-    expect(await wallet.numConfirmationsRequired()).to.be.equal(ONE);
+    expect(await wallet.numConfirmationsRequired()).to.be.equal(TWO);
   });
 
   it("should allow multisig to add a new owner", async function () {
